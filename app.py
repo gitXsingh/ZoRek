@@ -12,16 +12,16 @@ SHEET_BEST_URL = "https://api.sheetbest.com/sheets/766d80b7-7fbe-4480-b3d1-6b447
 @app.route('/')
 def home():
     return render_template("index.html")
-
-@app.route('/zorek', methods=['HEAD'])
-def zorek_head():
-    return '', 200
-
-
-@app.route('/zorek', methods=['POST'])
+@app.route('/zorek', methods=['POST', 'HEAD'])
 def zorek():
+    if request.method == 'HEAD':
+        return '', 200
+
     try:
-        data = request.get_json()
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()  # fallback for form data
         choice = data.get("choice")
         genre = data.get("genre", "random")
         mood = data.get("mood", "")
