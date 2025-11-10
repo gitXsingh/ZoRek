@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import requests, datetime, random
 
 app = Flask(__name__)
@@ -11,7 +11,7 @@ SHEET_BEST_URL = "https://api.sheetbest.com/sheets/766d80b7-7fbe-4480-b3d1-6b447
 
 @app.route('/')
 def home():
-    return "ZoRek Backend is Running ✅"
+    return render_template("index.html")
 
 @app.route('/zorek', methods=['POST'])
 def zorek():
