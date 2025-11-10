@@ -13,6 +13,11 @@ SHEET_BEST_URL = "https://api.sheetbest.com/sheets/766d80b7-7fbe-4480-b3d1-6b447
 def home():
     return render_template("index.html")
 
+@app.route('/zorek', methods=['HEAD'])
+def zorek_head():
+    return '', 200
+
+
 @app.route('/zorek', methods=['POST'])
 def zorek():
     try:
