@@ -17,9 +17,12 @@
   <div id="chat" style="position:fixed; right:24px; bottom:24px; width:320px; max-width:90vw; background:#fff; border:1px solid #ddd; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.12); overflow:hidden;">
     <div style="background:#111827; color:#fff; padding:10px 12px; font-weight:600; display:flex; align-items:center; justify-content:space-between;">
       <span>ZoRek Chat (local)</span>
-      <label style="font-weight:normal; font-size:12px;">
-        <input id="toggle-links" type="checkbox" checked /> Show links
-      </label>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <label style="font-weight:normal; font-size:12px;">
+          <input id="toggle-links" type="checkbox" checked /> Show links
+        </label>
+        <button id="connect-spotify" style="font-size:12px; padding:4px 8px; background:#1DB954; color:#fff; border:none; border-radius:6px; cursor:pointer;">Connect Spotify</button>
+      </div>
     </div>
     <div id="chat-messages" style="height:260px; overflow:auto; padding:10px; background:#fafafa;">
       <div style="margin-bottom:8px;">
@@ -41,12 +44,26 @@
       const inputEl = document.getElementById('chat-input');
       const sendBtn = document.getElementById('chat-send');
       const toggleLinks = document.getElementById('toggle-links');
+      const connectSpotifyBtn = document.getElementById('connect-spotify');
       let step = 0;
       let mode = ''; // 'guide', 'suggest', 'events', 'mix'
       const state = { mood: '', movieGenre: '', songType: '', diet: '', suggestCategory: '', minImdb: '', year: '', city: '', eventCategory: '' };
       let showLinks = true;
       toggleLinks.addEventListener('change', function () {
         showLinks = !!this.checked;
+      });
+      connectSpotifyBtn.addEventListener('click', async function () {
+        try {
+          const r = await fetch('/oauth/spotify/start');
+          const data = await r.json();
+          if (data.auth_url) {
+            window.open(data.auth_url, '_blank');
+          } else {
+            alert('Spotify not configured.');
+          }
+        } catch (e) {
+          alert('Unable to start Spotify auth.');
+        }
       });
 
       function appendBubble(text, who, isHTML=false) {
@@ -130,12 +147,17 @@
 
       function suggestMenu() {
         appendBubble('Choose a category for suggestions:', 'bot');
-        appendChoices(['Movies', 'Books', 'Games', 'Food'], (val) => handleUserInput(val));
+        appendChoices(['Movies', 'Books', 'Games', 'Food', 'Music'], (val) => handleUserInput(val));
       }
 
       function eventsMenu() {
         appendBubble('What kind of event would you like?', 'bot');
         appendChoices(['Movies', 'Talkshow', 'Concerts', 'Find events'], (val) => handleUserInput(val));
+      }
+
+      function askMusicKeyword() {
+        appendBubble('Type a song style/artist/track (e.g., Pop, Lo-fi, A.R. Rahman):', 'bot');
+        appendChoices(['Pop', 'Rock', 'Lo-fi', 'Hip-hop', 'Jazz', 'Classical'], (val) => handleUserInput(val));
       }
 
       function askMovieFilters() {
@@ -365,12 +387,17 @@
             appendBubble('Enter a game keyword (e.g., racing, zombie):', 'bot');
             return;
           }
+          if (/music/i.test(trimmed)) {
+            step = 15;
+            askMusicKeyword();
+            return;
+          }
           if (/food/i.test(trimmed)) {
             step = 18;
             askDiet();
             return;
           }
-          appendBubble('Unknown category. Choose Movies, Books, Games, or Food.', 'bot');
+          appendBubble('Unknown category. Choose Movies, Books, Games, Food, or Music.', 'bot');
           return;
         }
         if (mode === 'suggest' && step === 11) {
@@ -402,6 +429,12 @@
         }
         if (mode === 'suggest' && step === 14) {
           state.movieGenre = trimmed;
+          fetchSuggest();
+          step = 99;
+          return;
+        }
+        if (mode === 'suggest' && step === 15) {
+          state.songType = trimmed;
           fetchSuggest();
           step = 99;
           return;

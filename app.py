@@ -393,6 +393,49 @@ def get_song_recommendation_with_url(song_type: str = "", mood: str = "") -> dic
     except Exception as exc:
         return {"text": f"⚠️ Music API error: {str(exc)}", "url": None}
 
+def suggest_music_with_links(query: str = "") -> list[dict]:
+    """
+    Suggest multiple tracks. Prefer Spotify if OAuth token available, else iTunes.
+    Returns list of {text, url, image}
+    """
+    q = (query or "popular").strip()
+    # Try Spotify first
+    if spotify_token_valid():
+        try:
+            headers = {"Authorization": f"Bearer {SPOTIFY_TOKEN['access_token']}"}
+            params = {"q": q, "type": "track", "limit": 10}
+            resp = requests.get("https://api.spotify.com/v1/search", headers=headers, params=params, timeout=8)
+            data = resp.json()
+            items = (data.get("tracks", {}) or {}).get("items", [])
+            results = []
+            for t in items:
+                name = t.get("name", "Unknown Track")
+                artists = ", ".join([a.get("name") for a in t.get("artists", [])]) or "Unknown Artist"
+                url = (t.get("external_urls") or {}).get("spotify")
+                imgs = ((t.get("album") or {}).get("images") or [])
+                image = imgs[0]["url"] if imgs else None
+                results.append({"text": f"🎵 {name} — {artists}", "url": url, "image": image})
+            if results:
+                return results
+        except Exception:
+            pass
+    # Fallback iTunes
+    try:
+        term = q.replace(" ", "+")
+        url = f"https://itunes.apple.com/search?term={term}&entity=song&limit=10"
+        res = requests.get(url, timeout=8)
+        data = res.json()
+        results = []
+        for track in data.get("results", []):
+            track_name = track.get("trackName", "Unknown Track")
+            artist = track.get("artistName", "Unknown Artist")
+            link = track.get("trackViewUrl") or track.get("collectionViewUrl") or track.get("artistViewUrl")
+            img = track.get("artworkUrl100") or track.get("artworkUrl60")
+            results.append({"text": f"🎵 {track_name} — {artist}", "url": link, "image": img})
+        return results or [{"text": "No songs found.", "url": None}]
+    except Exception as exc:
+        return [{"text": f"⚠️ Music search error: {str(exc)}", "url": None}]
+
 def get_food_recommendation_with_url(diet: str = "") -> dict:
     """
     Return a dict with text and url for a food suggestion from Spoonacular.
@@ -757,6 +800,9 @@ def suggest():
         elif category == "games":
             keyword = prefs.get("keyword", "")
             results = suggest_games_with_links(keyword)
+        elif category == "music":
+            keyword = prefs.get("songType") or prefs.get("keyword") or prefs.get("query", "")
+            results = suggest_music_with_links(keyword)
         elif category == "food":
             diet = prefs.get("diet", "")
             results = [get_food_recommendation_with_url(diet)]
