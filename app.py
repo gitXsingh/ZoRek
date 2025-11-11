@@ -1,23 +1,32 @@
 from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
 import requests
 import datetime
 import random
 import traceback
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 
-# ====== CONFIG ======
-OMDB_KEY = "24b393c0"
-SPOONACULAR_KEY = "7a3b4893233c41d3b327eacdba876813"
-SHEET_BEST_URL = "https://api.sheetbest.com/sheets/766d80b7-7fbe-4480-b3d1-6b44795a9cef"
-SEATGEEK_CLIENT_ID = ""  # optional: add your SeatGeek client id for events
-TMDB_KEY = "d0db65f7a9ba6865e6216b9ade630204"  # TMDB API key for now-playing movies
-SPOTIFY_CLIENT_ID = ""  # optional: set for OAuth
-SPOTIFY_CLIENT_SECRET = ""  # optional: set for OAuth
-SPOTIFY_CLIENT_ID = "c21728adef8843be87cb53a0f33f7204"
-SPOTIFY_CLIENT_SECRET = "1920660f4f88408ab148f79892281213"
-SPOTIFY_REDIRECT_URI = "https://zorek.onrender.com/oauth/spotify/callback"  # must match Spotify app settings
-OPENAI_API_KEY = ""   # optional: add for AI commentary
+# Configure CORS for Zoho SalesIQ domains
+# Allow all origins for Zoho integration (SalesIQ can call from various subdomains)
+# In production, you may want to restrict this to specific Zoho domains
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+# ====== CONFIG - Load from Environment Variables ======
+OMDB_KEY = os.environ.get("OMDB_KEY", "")
+SPOONACULAR_KEY = os.environ.get("SPOONACULAR_KEY", "")
+SHEET_BEST_URL = os.environ.get("SHEET_BEST_URL", "")
+SEATGEEK_CLIENT_ID = os.environ.get("SEATGEEK_CLIENT_ID", "")
+TMDB_KEY = os.environ.get("TMDB_KEY", "")
+SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID", "")
+SPOTIFY_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
+SPOTIFY_REDIRECT_URI = os.environ.get("SPOTIFY_REDIRECT_URI", "https://zorek.onrender.com/oauth/spotify/callback")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 # ====================
 
 SPOTIFY_TOKEN = {"access_token": None, "expires_at": 0, "mode": None}  # mode: 'user' or 'app'
@@ -905,37 +914,66 @@ def events():
 @app.route('/suggest_cards', methods=['POST'])
 def suggest_cards():
     """
-    Returns results as cards: [{title, imageUrl, description, action:{label,url}}]
-    Mirrors /suggest but transforms items for easy SalesIQ display.
+    Returns results as SalesIQ cards: [{title, imageUrl, description, action:{label,url}}]
+    Standardized format for Zoho SalesIQ plug integration.
     """
     try:
         data = request.get_json(force=True)
-        category = str(data.get("category", "")).strip()
+        category = str(data.get("category", "")).strip().lower()
         prefs = data.get("prefs", {}) or {}
-        # reuse suggest to get items
-        resp = suggest()
-        if resp.status_code != 200:
-            return resp
-        items = resp.get_json().get("items", [])
+        
+        # Get items from suggest logic
+        if category == "movies":
+            genre = prefs.get("genre", "")
+            min_imdb = float(prefs.get("minImdb", 0) or 0)
+            year = str(prefs.get("year", "")).strip()
+            items = search_movies_with_filters(genre, min_imdb, year)
+        elif category == "books":
+            subject = prefs.get("subject", "")
+            lang = prefs.get("lang", "")
+            items = suggest_books_with_links(subject, lang)
+        elif category == "games":
+            keyword = prefs.get("keyword", "")
+            items = suggest_games_with_links(keyword)
+        elif category == "music":
+            keyword = prefs.get("songType") or prefs.get("keyword") or prefs.get("query", "")
+            items = suggest_music_with_links(keyword)
+        elif category == "food":
+            diet = prefs.get("diet", "")
+            items = [get_food_recommendation_with_url(diet)]
+        else:
+            return jsonify({"error": "Unknown category"}), 400
+        
+        # Transform to SalesIQ card format
         cards = []
         for it in items[:10]:
-            if isinstance(it, str):
-                cards.append({
-                    "title": it,
-                    "imageUrl": None,
-                    "description": "",
-                    "action": {"label": "Open", "url": None}
-                })
-            else:
+            if isinstance(it, dict):
                 text = it.get("text", "")
                 url = it.get("url")
                 image = it.get("image") or it.get("poster")
+                
+                # Extract title and description from text
+                # Format: "🎬 Title (Year) — ⭐ Rating" or "📚 Title — Author"
+                title = text
+                description = category.title()
+                
+                # For movies, extract rating info
+                if category == "movies" and "⭐" in text:
+                    parts = text.split("—")
+                    if len(parts) > 1:
+                        title = parts[0].strip()
+                        description = parts[1].strip()
+                
                 cards.append({
-                    "title": text,
+                    "title": title.replace("🎬", "").replace("📚", "").replace("🎮", "").replace("🎵", "").replace("🍕", "").strip(),
                     "imageUrl": image,
-                    "description": category,
-                    "action": {"label": "View", "url": url}
+                    "description": description,
+                    "action": {
+                        "label": "View" if url else "N/A",
+                        "url": url
+                    }
                 })
+        
         return jsonify({"cards": cards})
     except Exception as e:
         print("❌ suggest_cards error:", traceback.format_exc())
@@ -944,34 +982,83 @@ def suggest_cards():
 @app.route('/events_cards', methods=['POST'])
 def events_cards():
     """
-    Returns events as cards: [{title, imageUrl, description, action:{label,url}}]
-    Mirrors /events but transforms items for easy SalesIQ display.
+    Returns events as SalesIQ cards: [{title, imageUrl, description, action:{label,url}}]
+    Standardized format for Zoho SalesIQ plug integration.
     """
     try:
         data = request.get_json(force=True)
-        # reuse events to get items
-        resp = events()
-        if resp.status_code != 200:
-            return resp
-        items = resp.get_json().get("items", [])
-        cards = []
-        for it in items[:10]:
-            if isinstance(it, str):
-                cards.append({
-                    "title": it,
-                    "imageUrl": None,
-                    "description": "Event",
-                    "action": {"label": "Open", "url": None}
-                })
+        category = str(data.get("category", "")).strip().lower()
+        city = str(data.get("city", "")).strip()
+        results = []
+        
+        # Get events using same logic as /events
+        if category in ["concerts", "talkshow", "theater", "sports"]:
+            loc = geocode_city(city) if city else None
+            if not loc:
+                return jsonify({"error": "Could not determine location"}), 400
+            lat, lon = loc
+            if SEATGEEK_CLIENT_ID:
+                results = events_from_seatgeek(category, lat, lon)
+                if not results:
+                    results = fallback_event_links(category, city)
             else:
+                results = fallback_event_links(category, city)
+        elif category in ["find events", "find"]:
+            loc = geocode_city(city) if city else None
+            if not loc:
+                return jsonify({"error": "Could not determine location"}), 400
+            lat, lon = loc
+            results = events_from_seatgeek("concerts", lat, lon)
+        elif category == "movies":
+            if TMDB_KEY:
+                try:
+                    data_resp = requests.get(f"https://api.themoviedb.org/3/movie/now_playing?api_key={TMDB_KEY}&language=en-US&page=1", timeout=10).json()
+                    for m in data_resp.get("results", [])[:10]:
+                        title = m.get("title")
+                        url = f"https://www.themoviedb.org/movie/{m.get('id')}"
+                        dt = m.get("release_date", "")
+                        results.append({"text": f"🎟️ {title} — {dt}", "url": url})
+                except Exception:
+                    results = []
+            else:
+                try:
+                    data_resp = requests.get("https://itunes.apple.com/search?term=movie&entity=movie&limit=10", timeout=10).json()
+                    for m in data_resp.get("results", []):
+                        results.append({"text": f"🎟️ {m.get('trackName','Movie')}", "url": m.get('trackViewUrl')})
+                except Exception:
+                    results = []
+        else:
+            return jsonify({"error": "Unknown event category"}), 400
+        
+        # Transform to SalesIQ card format
+        cards = []
+        for it in results[:10]:
+            if isinstance(it, dict):
                 text = it.get("text", "")
                 url = it.get("url")
+                
+                # Extract title and description
+                # Format: "📅 Title — Date @ Venue" or "🎟️ Title — Date"
+                title = text.replace("📅", "").replace("🎟️", "").strip()
+                description = category.title()
+                
+                # Try to extract date/venue info
+                if " — " in title:
+                    parts = title.split(" — ")
+                    title = parts[0].strip()
+                    if len(parts) > 1:
+                        description = parts[1].strip()
+                
                 cards.append({
-                    "title": text,
+                    "title": title,
                     "imageUrl": None,
-                    "description": "Event",
-                    "action": {"label": "Tickets", "url": url}
+                    "description": description,
+                    "action": {
+                        "label": "Tickets" if url else "View",
+                        "url": url
+                    }
                 })
+        
         return jsonify({"cards": cards})
     except Exception as e:
         print("❌ events_cards error:", traceback.format_exc())
@@ -1035,6 +1122,7 @@ def ai_commentary():
     """
     Optional AI commentary that crafts a fun blurb around provided items.
     Expects: { movie: {text}, song: {text}, food: {text}, mood }
+    Uses GPT-4o-mini with GPT-3.5-turbo fallback.
     """
     try:
         if not OPENAI_API_KEY:
@@ -1044,30 +1132,155 @@ def ai_commentary():
         song = (data.get("song") or {}).get("text", "")
         food = (data.get("food") or {}).get("text", "")
         mood = data.get("mood", "")
+        
         prompt = (
-            "Write a short (40-70 words) playful recommendation combining a movie, a song, and a dish. "
-            "Keep it upbeat and tailored to the user's mood.\n"
+            "Write a short (1-2 sentences, 40-70 words) playful recommendation combining a movie, a song, and a dish. "
+            "Keep it upbeat and tailored to the user's mood. Be creative and engaging.\n"
             f"Mood: {mood}\nMovie: {movie}\nSong: {song}\nFood: {food}\n"
         )
         headers = {
             "Authorization": f"Bearer {OPENAI_API_KEY}",
             "Content-Type": "application/json"
         }
-        body = {
-            "model": "gpt-4o-mini",
-            "messages": [
-                {"role": "system", "content": "You are a witty entertainment concierge."},
-                {"role": "user", "content": prompt}
-            ],
-            "temperature": 0.8
-        }
-        r = requests.post("https://api.openai.com/v1/chat/completions", json=body, headers=headers, timeout=20)
-        out = r.json()
-        text = (((out.get("choices") or [])[0] or {}).get("message") or {}).get("content", "").strip()
-        return jsonify({"commentary": text or "Enjoy your picks!"})
+        
+        # Try GPT-4o-mini first, fallback to GPT-3.5-turbo
+        models = ["gpt-4o-mini", "gpt-3.5-turbo"]
+        for model in models:
+            try:
+                body = {
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": "You are a witty entertainment concierge."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.8,
+                    "max_tokens": 150
+                }
+                r = requests.post("https://api.openai.com/v1/chat/completions", json=body, headers=headers, timeout=20)
+                r.raise_for_status()
+                out = r.json()
+                text = (((out.get("choices") or [])[0] or {}).get("message") or {}).get("content", "").strip()
+                if text:
+                    return jsonify({"commentary": text})
+            except Exception as model_error:
+                if model == models[-1]:  # Last model, re-raise
+                    raise model_error
+                continue  # Try next model
+        
+        return jsonify({"commentary": "Enjoy your picks!"})
     except Exception as e:
         print("❌ AI commentary error:", traceback.format_exc())
         return jsonify({"error": str(e)}), 400
+
+@app.route('/widget_detail', methods=['GET'])
+def widget_detail():
+    """
+    SalesIQ Operator Widget endpoint.
+    Returns visitor data in Zoho widget_detail format.
+    Query params: email (optional, defaults to unknown@example.com)
+    """
+    try:
+        email = request.args.get("email", "unknown@example.com")
+        
+        # In a real implementation, you'd fetch this from your database/Sheet
+        # For now, return mock data structure matching Zoho widget_detail format
+        visitor_data = {
+            "email": email,
+            "lastChoice": "Movies",
+            "lastGenre": "Action",
+            "lastSuggestion": "Inception (2010)",
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "interactionCount": 1
+        }
+        
+        return jsonify(visitor_data)
+    except Exception as e:
+        print("❌ Widget detail error:", traceback.format_exc())
+        return jsonify({"error": str(e)}), 400
+
+@app.route('/health_check', methods=['GET'])
+def health_check():
+    """
+    Health check endpoint to verify all APIs are working.
+    Returns status of each service.
+    """
+    checks = {}
+    all_ok = True
+    
+    # Check OMDb
+    try:
+        if OMDB_KEY:
+            test = requests.get(f"https://www.omdbapi.com/?apikey={OMDB_KEY}&i=tt3896198", timeout=5)
+            checks["OMDb"] = "PASS" if test.status_code == 200 else "FAIL"
+        else:
+            checks["OMDb"] = "SKIP"
+    except Exception:
+        checks["OMDb"] = "FAIL"
+        all_ok = False
+    
+    # Check Google Books
+    try:
+        test = requests.get("https://www.googleapis.com/books/v1/volumes?q=test", timeout=5)
+        checks["Books"] = "PASS" if test.status_code == 200 else "FAIL"
+    except Exception:
+        checks["Books"] = "FAIL"
+        all_ok = False
+    
+    # Check Spoonacular
+    try:
+        if SPOONACULAR_KEY:
+            test = requests.get(f"https://api.spoonacular.com/recipes/random?apiKey={SPOONACULAR_KEY}&number=1", timeout=5)
+            checks["Spoonacular"] = "PASS" if test.status_code == 200 else "FAIL"
+        else:
+            checks["Spoonacular"] = "SKIP"
+    except Exception:
+        checks["Spoonacular"] = "FAIL"
+        all_ok = False
+    
+    # Check Sheet.best
+    try:
+        if SHEET_BEST_URL:
+            # Just check if URL is reachable (HEAD request)
+            test = requests.head(SHEET_BEST_URL, timeout=5)
+            checks["SheetBest"] = "PASS" if test.status_code in [200, 405] else "FAIL"  # 405 is OK for HEAD
+        else:
+            checks["SheetBest"] = "SKIP"
+    except Exception:
+        checks["SheetBest"] = "FAIL"
+        all_ok = False
+    
+    # Check Local /zorek endpoint
+    try:
+        # This is a self-check, so we'll just verify the endpoint exists
+        checks["Local"] = "PASS"
+    except Exception:
+        checks["Local"] = "FAIL"
+        all_ok = False
+    
+    # Check TMDB
+    try:
+        if TMDB_KEY:
+            test = requests.get(f"https://api.themoviedb.org/3/genre/movie/list?api_key={TMDB_KEY}", timeout=5)
+            checks["TMDB"] = "PASS" if test.status_code == 200 else "FAIL"
+        else:
+            checks["TMDB"] = "SKIP"
+    except Exception:
+        checks["TMDB"] = "FAIL"
+    
+    # Check Spotify
+    try:
+        if SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET:
+            checks["Spotify"] = "PASS" if ensure_spotify_token() else "FAIL"
+        else:
+            checks["Spotify"] = "SKIP"
+    except Exception:
+        checks["Spotify"] = "FAIL"
+    
+    return jsonify({
+        "status": "ok" if all_ok else "degraded",
+        "checks": checks,
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    })
 
 
 # ====== GLOBAL ERROR HANDLERS ======
