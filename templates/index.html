@@ -14,6 +14,465 @@
   <h1>ZoRek – Smart Entertainment Bot</h1>
   <p>Welcome! Click the chat bubble at the bottom-right to talk with ZoRek 🎬📚🍕</p>
 
+  <div id="chat" style="position:fixed; right:24px; bottom:24px; width:320px; max-width:90vw; background:#fff; border:1px solid #ddd; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.12); overflow:hidden;">
+    <div style="background:#111827; color:#fff; padding:10px 12px; font-weight:600; display:flex; align-items:center; justify-content:space-between;">
+      <span>ZoRek Chat (local)</span>
+      <label style="font-weight:normal; font-size:12px;">
+        <input id="toggle-links" type="checkbox" checked /> Show links
+      </label>
+    </div>
+    <div id="chat-messages" style="height:260px; overflow:auto; padding:10px; background:#fafafa;">
+      <div style="margin-bottom:8px;">
+        <div style="background:#e5e7eb; display:inline-block; padding:8px 10px; border-radius:10px;">
+          👋 Hi, I’m ZoRek! I can recommend movies, songs, and food.
+          Let’s get started. What’s your mood?
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; gap:6px; padding:8px; border-top:1px solid #eee; background:#fff;">
+      <input id="chat-input" type="text" placeholder="Type your message..." style="flex:1; padding:8px 10px; border:1px solid #ddd; border-radius:8px;" />
+      <button id="chat-send" style="padding:8px 12px; background:#2563eb; color:#fff; border:none; border-radius:8px; cursor:pointer;">Send</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const messagesEl = document.getElementById('chat-messages');
+      const inputEl = document.getElementById('chat-input');
+      const sendBtn = document.getElementById('chat-send');
+      const toggleLinks = document.getElementById('toggle-links');
+      let step = 0;
+      let mode = ''; // 'guide', 'suggest', 'events', 'mix'
+      const state = { mood: '', movieGenre: '', songType: '', diet: '', suggestCategory: '', minImdb: '', year: '', city: '', eventCategory: '' };
+      let showLinks = true;
+      toggleLinks.addEventListener('change', function () {
+        showLinks = !!this.checked;
+      });
+
+      function appendBubble(text, who, isHTML=false) {
+        const wrap = document.createElement('div');
+        wrap.style.marginBottom = '8px';
+        const bubble = document.createElement('div');
+        if (isHTML) {
+          bubble.innerHTML = text;
+        } else {
+          bubble.textContent = text;
+        }
+        bubble.style.display = 'inline-block';
+        bubble.style.padding = '8px 10px';
+        bubble.style.borderRadius = '10px';
+        bubble.style.maxWidth = '90%';
+        if (who === 'user') {
+          bubble.style.background = '#dbeafe';
+          bubble.style.marginLeft = '10%';
+        } else {
+          bubble.style.background = '#e5e7eb';
+          bubble.style.marginRight = '10%';
+        }
+        wrap.appendChild(bubble);
+        messagesEl.appendChild(wrap);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      function appendChoices(options, onSelect) {
+        const wrap = document.createElement('div');
+        wrap.style.margin = '6px 0 10px';
+        options.forEach(opt => {
+          const b = document.createElement('button');
+          b.textContent = opt;
+          b.style.marginRight = '6px';
+          b.style.marginTop = '6px';
+          b.style.padding = '6px 10px';
+          b.style.border = '1px solid #ddd';
+          b.style.borderRadius = '999px';
+          b.style.background = '#fff';
+          b.style.cursor = 'pointer';
+          b.addEventListener('click', () => {
+            wrap.remove();
+            onSelect(opt);
+          });
+          wrap.appendChild(b);
+        });
+        messagesEl.appendChild(wrap);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      function askMood() {
+        appendBubble('Please choose your mood:', 'bot');
+        appendChoices(['Happy', 'Sad', 'Romantic', 'Adventurous', 'Chill', 'Scared', 'Excited', 'Bored', 'Curious', 'Nostalgic'], (val) => handleUserInput(val));
+      }
+
+      function askMovieGenre() {
+        appendBubble('Great! What movie genre do you want?', 'bot');
+        appendChoices(['Action', 'Adventure', 'Animation', 'Biography', 'Comedy', 'Crime', 'Documentary', 'Drama', 'Family', 'Fantasy'], (val) => handleUserInput(val));
+        appendChoices(['History', 'Horror', 'Music', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Sport', 'Thriller', 'War', 'Western'], (val) => handleUserInput(val));
+        appendChoices(['Superhero', 'Survival', 'Noir'], (val) => handleUserInput(val));
+      }
+
+      function askSongType() {
+        appendBubble('What type of song are you in the mood for?', 'bot');
+        appendChoices(['Pop', 'Rock', 'Hip-hop', 'Lo-fi', 'Jazz', 'Classical', 'EDM', 'Country', 'R&B', 'Indie', 'Metal', 'K-Pop'], (val) => handleUserInput(val));
+      }
+
+      function askDiet() {
+        appendBubble('Veg or Non-veg for your food recommendation?', 'bot');
+        appendChoices(['Veg', 'Non-veg'], (val) => {
+          handleUserInput(val);
+        });
+      }
+
+      function mainMenu() {
+        appendBubble('What would you like to do?', 'bot');
+        appendChoices(['Suggest something', 'Book an event', 'My pick'], (val) => {
+          handleUserInput(val);
+        });
+      }
+
+      function suggestMenu() {
+        appendBubble('Choose a category for suggestions:', 'bot');
+        appendChoices(['Movies', 'Books', 'Games', 'Food'], (val) => handleUserInput(val));
+      }
+
+      function eventsMenu() {
+        appendBubble('What kind of event would you like?', 'bot');
+        appendChoices(['Movies', 'Talkshow', 'Concerts', 'Find events'], (val) => handleUserInput(val));
+      }
+
+      function askMovieFilters() {
+        appendBubble('Pick a minimum IMDb rating, or type your own, or tap Skip:', 'bot');
+        appendChoices(['6.0', '7.0', '8.0', 'Skip'], (val) => handleUserInput(val));
+      }
+
+      function askMovieYear() {
+        appendBubble('Enter release year (e.g., 2015), or type skip:', 'bot');
+      }
+
+      function askCity() {
+        appendBubble('Choose your city or type another:', 'bot');
+        appendChoices(['Mumbai', 'Delhi', 'Bengaluru', 'Hyderabad', 'Chennai', 'Pune'], (val) => handleUserInput(val));
+        appendChoices(['Kolkata', 'Ahmedabad', 'Jaipur', 'Surat', 'Other…'], (val) => handleUserInput(val));
+      }
+
+      async function fetchRecommendations() {
+        appendBubble('Awesome! Let me fetch your recommendations…', 'bot');
+        try {
+          const res = await fetch('/recommendations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mood: state.mood,
+              movieGenre: state.movieGenre,
+              songType: state.songType,
+              diet: state.diet
+            })
+          });
+          const data = await res.json();
+          if (data.error) {
+            appendBubble('Sorry, something went wrong while fetching suggestions.', 'bot');
+            return;
+          }
+          const mv = data.movie, sg = data.song, fd = data.food;
+          const mvText = typeof mv === 'string' ? mv : (mv?.text || '');
+          const sgText = typeof sg === 'string' ? sg : (sg?.text || '');
+          const fdText = typeof fd === 'string' ? fd : (fd?.text || '');
+          let html = `Based on your mood (${state.mood}) and choices:<br><br>`;
+          if (showLinks && typeof mv === 'object' && mv?.url) {
+            html += `Movie: <a href="${mv.url}" target="_blank" rel="noopener">${mvText}</a><br>`;
+          } else {
+            html += `Movie: ${mvText}<br>`;
+          }
+          if (typeof mv === 'object' && mv?.image) {
+            html += `<img src="${mv.image}" alt="movie" style="max-width:100%; border-radius:8px; margin:6px 0;"><br>`;
+          }
+          if (showLinks && typeof sg === 'object' && sg?.url) {
+            html += `Song: <a href="${sg.url}" target="_blank" rel="noopener">${sgText}</a><br>`;
+          } else {
+            html += `Song: ${sgText}<br>`;
+          }
+          if (typeof sg === 'object' && sg?.image) {
+            html += `<img src="${sg.image}" alt="song" style="max-width:100%; border-radius:8px; margin:6px 0;"><br>`;
+          }
+          if (showLinks && typeof fd === 'object' && fd?.url) {
+            html += `Food: <a href="${fd.url}" target="_blank" rel="noopener">${fdText}</a>`;
+          } else {
+            html += `Food: ${fdText}`;
+          }
+          if (typeof fd === 'object' && fd?.image) {
+            html += `<br><img src="${fd.image}" alt="food" style="max-width:100%; border-radius:8px; margin:6px 0;">`;
+          }
+          appendBubble(html, 'bot', true);
+          appendBubble('You can type “restart” to start over.', 'bot');
+          step = 99;
+        } catch (e) {
+          appendBubble('Network error. Please try again.', 'bot');
+        }
+      }
+
+      async function fetchSuggest() {
+        appendBubble('Fetching suggestions…', 'bot');
+        try {
+          const res = await fetch('/suggest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              category: state.suggestCategory,
+              prefs: {
+                genre: state.movieGenre,
+                minImdb: state.minImdb,
+                year: state.year,
+                subject: state.movieGenre,
+                keyword: state.movieGenre,
+                diet: state.diet
+              }
+            })
+          });
+          const data = await res.json();
+          if (data.error) {
+            appendBubble(data.error, 'bot');
+            return;
+          }
+          let html = `Here are some ${state.suggestCategory} suggestions:<br>`;
+          (data.items || []).slice(0, 5).forEach((it) => {
+            const text = typeof it === 'string' ? it : (it.text || '');
+            const url = typeof it === 'object' ? it.url : null;
+            if (url) {
+              html += `• <a href="${url}" target="_blank" rel="noopener">${text}</a><br>`;
+            } else {
+              html += `• ${text}<br>`;
+            }
+          });
+          appendBubble(html, 'bot', true);
+          appendBubble('Type “restart” to go back to the main menu.', 'bot');
+          step = 99;
+        } catch (e) {
+          appendBubble('Network error while fetching suggestions.', 'bot');
+        }
+      }
+
+      async function fetchEvents() {
+        appendBubble('Looking up events…', 'bot');
+        try {
+          const res = await fetch('/events', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              category: state.eventCategory,
+              city: state.city
+            })
+          });
+          const data = await res.json();
+          if (data.error) {
+            appendBubble(data.error, 'bot');
+            return;
+          }
+          let html = `Here are some ${state.eventCategory} options near ${state.city || 'you'}:<br>`;
+          (data.items || []).slice(0, 6).forEach((it) => {
+            const text = typeof it === 'string' ? it : (it.text || '');
+            const url = typeof it === 'object' ? it.url : null;
+            if (url) {
+              html += `• <a href="${url}" target="_blank" rel="noopener">${text}</a><br>`;
+            } else {
+              html += `• ${text}<br>`;
+            }
+          });
+          appendBubble(html, 'bot', true);
+          appendBubble('You can type “restart” to start over.', 'bot');
+          step = 99;
+        } catch (e) {
+          appendBubble('Network error while fetching events.', 'bot');
+        }
+      }
+
+      function handleUserInput(text) {
+        const trimmed = (text || '').trim();
+        if (!trimmed) return;
+        appendBubble(trimmed, 'user');
+
+        if (trimmed.toLowerCase() === 'restart') {
+          for (const k in state) state[k] = '';
+          step = 0;
+          mode = '';
+          appendBubble('Starting over.', 'bot');
+          mainMenu();
+          return;
+        }
+
+        // Home menu
+        if (step === 0) {
+          if (/suggest/i.test(trimmed)) {
+            mode = 'suggest';
+            step = 10;
+            suggestMenu();
+            return;
+          }
+          if (/book/i.test(trimmed)) {
+            mode = 'events';
+            step = 20;
+            eventsMenu();
+            return;
+          }
+          if (/my pick/i.test(trimmed)) {
+            mode = 'guide';
+            step = 1;
+            askMood();
+            return;
+          }
+          appendBubble('Please choose: Suggest something, Book an event, or My pick.', 'bot');
+          return;
+        }
+
+        // Guided "My pick" (existing mood/genre/song/diet -> recommendations)
+        if (mode === 'guide' && step === 1) {
+          state.mood = trimmed;
+          step = 2;
+          askMovieGenre();
+          return;
+        }
+        if (mode === 'guide' && step === 2) {
+          state.movieGenre = trimmed;
+          step = 3;
+          askSongType();
+          return;
+        }
+        if (mode === 'guide' && step === 3) {
+          state.songType = trimmed;
+          step = 4;
+          askDiet();
+          return;
+        }
+        if (mode === 'guide' && step === 4) {
+          state.diet = trimmed;
+          step = 5;
+          fetchRecommendations();
+          return;
+        }
+
+        // Suggest flow
+        if (mode === 'suggest' && step === 10) {
+          state.suggestCategory = trimmed;
+          if (/movie/i.test(trimmed)) {
+            step = 11;
+            appendBubble('Pick a movie genre or type it (e.g., Drama, Survival):', 'bot');
+            return;
+          }
+          if (/book/i.test(trimmed)) {
+            step = 14;
+            appendBubble('What subject (e.g., Fiction, Technology)?', 'bot');
+            return;
+          }
+          if (/game/i.test(trimmed)) {
+            step = 16;
+            appendBubble('Enter a game keyword (e.g., racing, zombie):', 'bot');
+            return;
+          }
+          if (/food/i.test(trimmed)) {
+            step = 18;
+            askDiet();
+            return;
+          }
+          appendBubble('Unknown category. Choose Movies, Books, Games, or Food.', 'bot');
+          return;
+        }
+        if (mode === 'suggest' && step === 11) {
+          state.movieGenre = trimmed;
+          step = 12;
+          askMovieFilters();
+          return;
+        }
+        if (mode === 'suggest' && step === 12) {
+          if (/skip/i.test(trimmed)) {
+            state.minImdb = '';
+          } else if (/^\d+(\.\d+)?$/.test(trimmed)) {
+            state.minImdb = trimmed;
+          } else if (/^\d\+$/i.test(trimmed)) { // e.g., 7+
+            state.minImdb = trimmed.replace('+','') + '.0';
+          } else {
+            // fallback: try to parse common labels like "7.0"
+            state.minImdb = trimmed;
+          }
+          step = 13;
+          askMovieYear();
+          return;
+        }
+        if (mode === 'suggest' && step === 13) {
+          state.year = (/skip/i.test(trimmed) || trimmed === '') ? '' : trimmed;
+          fetchSuggest();
+          step = 99;
+          return;
+        }
+        if (mode === 'suggest' && step === 14) {
+          state.movieGenre = trimmed;
+          fetchSuggest();
+          step = 99;
+          return;
+        }
+        if (mode === 'suggest' && step === 16) {
+          state.movieGenre = trimmed;
+          fetchSuggest();
+          step = 99;
+          return;
+        }
+        if (mode === 'suggest' && step === 18) {
+          state.diet = trimmed;
+          fetchSuggest();
+          step = 99;
+          return;
+        }
+
+        // Events flow
+        if (mode === 'events' && step === 20) {
+          state.eventCategory = trimmed;
+          step = 21;
+          askCity();
+          return;
+        }
+        if (mode === 'events' && step === 21) {
+          if (/other/i.test(trimmed)) {
+            appendBubble('Please type your city name:', 'bot');
+            return; // next message is the typed city
+          }
+          state.city = trimmed;
+          fetchEvents();
+          step = 99;
+          return;
+        }
+
+        // Fallback: regular /chat for arbitrary messages
+        appendBubble('Thinking…', 'bot');
+        fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: trimmed })
+        })
+          .then(r => r.json())
+          .then(d => {
+            // replace the last "Thinking…" bubble
+            messagesEl.lastChild.remove();
+            appendBubble(d.reply || d.error || 'Sorry, something went wrong.', 'bot');
+          })
+          .catch(() => {
+            messagesEl.lastChild.remove();
+            appendBubble('Network error. Please try again.', 'bot');
+          });
+      }
+
+      async function sendMessage() {
+        const text = inputEl.value.trim();
+        if (!text) return;
+        inputEl.value = '';
+        handleUserInput(text);
+      }
+
+      sendBtn.addEventListener('click', sendMessage);
+      inputEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') sendMessage();
+      });
+
+      // Kick off with main menu
+      mainMenu();
+    })();
+  </script>
+
   <!-- Paste your Zoho SalesIQ widget script BELOW -->
   <script>
     window.$zoho = window.$zoho || {};
