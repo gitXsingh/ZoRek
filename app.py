@@ -20,17 +20,41 @@ SPOTIFY_REDIRECT_URI = "https://zorek.onrender.com/oauth/spotify/callback"  # mu
 OPENAI_API_KEY = ""   # optional: add for AI commentary
 # ====================
 
-SPOTIFY_TOKEN = {"access_token": None, "expires_at": 0}
+SPOTIFY_TOKEN = {"access_token": None, "expires_at": 0, "mode": None}  # mode: 'user' or 'app'
 
 def _now_ts() -> int:
     return int(datetime.datetime.utcnow().timestamp())
 
-def set_spotify_token(access_token: str, expires_in: int):
+def set_spotify_token(access_token: str, expires_in: int, token_kind: str = "user"):
     SPOTIFY_TOKEN["access_token"] = access_token
     SPOTIFY_TOKEN["expires_at"] = _now_ts() + int(expires_in or 0) - 30
+    SPOTIFY_TOKEN["mode"] = token_kind
 
 def spotify_token_valid() -> bool:
     return bool(SPOTIFY_TOKEN.get("access_token")) and _now_ts() < SPOTIFY_TOKEN.get("expires_at", 0)
+
+def ensure_spotify_token() -> bool:
+    """
+    Ensure we have a valid Spotify token. If no user token, fall back to client-credentials.
+    """
+    if spotify_token_valid():
+        return True
+    if SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET:
+        try:
+            data = {
+                "grant_type": "client_credentials",
+                "client_id": SPOTIFY_CLIENT_ID,
+                "client_secret": SPOTIFY_CLIENT_SECRET,
+            }
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
+            r = requests.post("https://accounts.spotify.com/api/token", data=data, headers=headers, timeout=10)
+            tok = r.json()
+            if "access_token" in tok:
+                set_spotify_token(tok["access_token"], tok.get("expires_in", 3600), token_kind="app")
+                return True
+        except Exception:
+            return False
+    return False
 
 def normalize_genre_search_term(raw: str) -> str:
     """
@@ -358,7 +382,7 @@ def get_song_recommendation_with_url(song_type: str = "", mood: str = "") -> dic
     """
     query = (song_type or mood or "popular").strip()
     # Try Spotify
-    if spotify_token_valid():
+    if ensure_spotify_token() and spotify_token_valid():
         try:
             headers = {"Authorization": f"Bearer {SPOTIFY_TOKEN['access_token']}"}
             params = {"q": query, "type": "track", "limit": 25}
@@ -372,7 +396,7 @@ def get_song_recommendation_with_url(song_type: str = "", mood: str = "") -> dic
                 url = (track.get("external_urls") or {}).get("spotify")
                 images = ((track.get("album") or {}).get("images") or [])
                 image = images[0]["url"] if images else None
-                return {"text": f"🎵 {name} — {artists}", "url": url, "image": image}
+                return {"text": f"🎵 {name} — {artists}", "url": url, "image": image, "source": "spotify"}
         except Exception as exc:
             pass
     # Fallback to iTunes
@@ -388,10 +412,10 @@ def get_song_recommendation_with_url(song_type: str = "", mood: str = "") -> dic
             artist = track.get("artistName", "Unknown Artist")
             link = track.get("trackViewUrl") or track.get("collectionViewUrl") or track.get("artistViewUrl")
             img = track.get("artworkUrl100") or track.get("artworkUrl60")
-            return {"text": f"🎵 {track_name} — {artist}", "url": link, "image": img}
-        return {"text": "🎵 Couldn't find a song right now. Try another type?", "url": None}
+            return {"text": f"🎵 {track_name} — {artist}", "url": link, "image": img, "source": "itunes"}
+        return {"text": "🎵 Couldn't find a song right now. Try another type?", "url": None, "source": "unknown"}
     except Exception as exc:
-        return {"text": f"⚠️ Music API error: {str(exc)}", "url": None}
+        return {"text": f"⚠️ Music API error: {str(exc)}", "url": None, "source": "error"}
 
 def suggest_music_with_links(query: str = "") -> list[dict]:
     """
@@ -400,7 +424,7 @@ def suggest_music_with_links(query: str = "") -> list[dict]:
     """
     q = (query or "popular").strip()
     # Try Spotify first
-    if spotify_token_valid():
+    if ensure_spotify_token() and spotify_token_valid():
         try:
             headers = {"Authorization": f"Bearer {SPOTIFY_TOKEN['access_token']}"}
             params = {"q": q, "type": "track", "limit": 10}
@@ -414,7 +438,7 @@ def suggest_music_with_links(query: str = "") -> list[dict]:
                 url = (t.get("external_urls") or {}).get("spotify")
                 imgs = ((t.get("album") or {}).get("images") or [])
                 image = imgs[0]["url"] if imgs else None
-                results.append({"text": f"🎵 {name} — {artists}", "url": url, "image": image})
+                results.append({"text": f"🎵 {name} — {artists}", "url": url, "image": image, "source": "spotify"})
             if results:
                 return results
         except Exception:
@@ -431,10 +455,10 @@ def suggest_music_with_links(query: str = "") -> list[dict]:
             artist = track.get("artistName", "Unknown Artist")
             link = track.get("trackViewUrl") or track.get("collectionViewUrl") or track.get("artistViewUrl")
             img = track.get("artworkUrl100") or track.get("artworkUrl60")
-            results.append({"text": f"🎵 {track_name} — {artist}", "url": link, "image": img})
-        return results or [{"text": "No songs found.", "url": None}]
+            results.append({"text": f"🎵 {track_name} — {artist}", "url": link, "image": img, "source": "itunes"})
+        return results or [{"text": "No songs found.", "url": None, "source": "unknown"}]
     except Exception as exc:
-        return [{"text": f"⚠️ Music search error: {str(exc)}", "url": None}]
+        return [{"text": f"⚠️ Music search error: {str(exc)}", "url": None, "source": "error"}]
 
 def get_food_recommendation_with_url(diet: str = "") -> dict:
     """
@@ -998,6 +1022,13 @@ def spotify_callback():
     except Exception as e:
         print("❌ Spotify callback error:", traceback.format_exc())
         return jsonify({"error": str(e)}), 400
+
+@app.route('/oauth/spotify/status')
+def spotify_status():
+    """
+    Returns whether the server currently has a valid Spotify access token.
+    """
+    return jsonify({"connected": spotify_token_valid(), "mode": SPOTIFY_TOKEN.get("mode")})
 
 @app.route('/ai_commentary', methods=['POST'])
 def ai_commentary():
