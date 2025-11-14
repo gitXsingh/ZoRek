@@ -7,7 +7,17 @@ from flask import request, jsonify
 import datetime
 import traceback
 import requests
+import sys
+import logging
 from typing import Dict, List
+
+# Configure logging for Render (ensures logs are visible)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    stream=sys.stdout
+)
+logger = logging.getLogger(__name__)
 
 
 # ====== UTILITY HELPERS ======
@@ -81,26 +91,55 @@ def create_bot_routes(
         Input: {"category": "string", "prefs": {}}
         Output: {"cards": [{title, description, imageUrl, action: {label, url}}]}
         """
-        # Log incoming request
+        # Log incoming request (both print and logger for Render visibility)
+        logger.info("="*60)
+        logger.info("🔵 [REQUEST] POST /suggest_cards")
+        logger.info(f"Time: {datetime.datetime.utcnow().isoformat()}")
+        logger.info(f"Remote: {request.remote_addr}")
+        logger.info(f"Content-Type: {request.content_type}")
+        logger.info(f"Headers: {dict(request.headers)}")
+        logger.info(f"Raw data: {request.get_data(as_text=True)[:200]}")
+        
         print("\n" + "="*60)
         print("🔵 [REQUEST] POST /suggest_cards")
         print(f"   Time: {datetime.datetime.utcnow().isoformat()}")
-        print(f"   Headers: {dict(request.headers)}")
         print(f"   Remote: {request.remote_addr}")
+        print(f"   Content-Type: {request.content_type}")
         
         try:
-            # Validate and parse input
-            if not request.is_json:
-                print("   ❌ ERROR: Not JSON")
+            # Try to get JSON data - be more flexible with content types
+            data = None
+            if request.is_json:
+                data = request.get_json(force=True)
+            elif request.content_type and 'application/json' in request.content_type:
+                data = request.get_json(force=True)
+            elif request.data:
+                try:
+                    import json
+                    data = json.loads(request.get_data(as_text=True))
+                except:
+                    pass
+            
+            # If still no data, try form data
+            if not data and request.form:
+                data = request.form.to_dict()
+            
+            logger.info(f"Parsed data: {data}")
+            print(f"   📥 Parsed data: {data}")
+            
+            if not data:
+                logger.error("❌ ERROR: No data received or couldn't parse")
+                print("   ❌ ERROR: No data received or couldn't parse")
                 return jsonify({"cards": [fallback_empty_card()]}), 400
             
-            data = request.get_json(force=True)
             category = normalize(safe_get(data, "category", ""))
             prefs = safe_get(data, "prefs", {}) or {}
             
+            logger.info(f"Input: category='{category}', prefs={prefs}")
             print(f"   📥 Input: category='{category}', prefs={prefs}")
             
             if not category:
+                logger.error("❌ ERROR: No category provided")
                 print("   ❌ ERROR: No category provided")
                 return jsonify({"cards": [fallback_empty_card()]}), 400
             
@@ -177,8 +216,10 @@ def create_bot_routes(
             if not cards:
                 cards = [fallback_empty_card()]
             
+            logger.info(f"✅ Output: {len(cards)} cards generated")
             print(f"   ✅ Output: {len(cards)} cards generated")
             print("="*60 + "\n")
+            logger.info("="*60)
             
             # Log (non-blocking)
             try:
@@ -195,9 +236,12 @@ def create_bot_routes(
             return jsonify({"cards": cards})
             
         except Exception as e:
+            error_msg = traceback.format_exc()
+            logger.error(f"❌ EXCEPTION in suggest_cards: {str(e)}")
+            logger.error(error_msg)
             print(f"   ❌ EXCEPTION: {str(e)}")
             print("="*60 + "\n")
-            print("❌ suggest_cards error:", traceback.format_exc())
+            print("❌ suggest_cards error:", error_msg)
             return jsonify({"cards": [fallback_empty_card()]}), 400
 
     @app.route('/events_cards', methods=['POST'])
