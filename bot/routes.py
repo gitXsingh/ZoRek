@@ -133,7 +133,19 @@ def create_bot_routes(
                 return jsonify({"cards": [fallback_empty_card()]}), 400
             
             category = normalize(safe_get(data, "category", ""))
-            prefs = safe_get(data, "prefs", {}) or {}
+            prefs_raw = safe_get(data, "prefs", {}) or {}
+            
+            # Handle prefs - could be dict or JSON string
+            prefs = {}
+            if isinstance(prefs_raw, dict):
+                prefs = prefs_raw
+            elif isinstance(prefs_raw, str):
+                try:
+                    import json
+                    prefs = json.loads(prefs_raw) if prefs_raw.strip() else {}
+                except Exception as e:
+                    logger.warning(f"Could not parse prefs as JSON: {prefs_raw}, error: {e}")
+                    prefs = {}
             
             logger.info(f"Input: category='{category}', prefs={prefs}")
             print(f"   📥 Input: category='{category}', prefs={prefs}")
@@ -251,26 +263,55 @@ def create_bot_routes(
         Input: {"category": "string", "city": "string"}
         Output: {"cards": [{title, description, imageUrl, action: {label, url}}]}
         """
-        # Log incoming request
+        # Log incoming request (both print and logger for Render visibility)
+        logger.info("="*60)
+        logger.info("🟢 [REQUEST] POST /events_cards")
+        logger.info(f"Time: {datetime.datetime.utcnow().isoformat()}")
+        logger.info(f"Remote: {request.remote_addr}")
+        logger.info(f"Content-Type: {request.content_type}")
+        logger.info(f"Headers: {dict(request.headers)}")
+        logger.info(f"Raw data: {request.get_data(as_text=True)[:200]}")
+        
         print("\n" + "="*60)
         print("🟢 [REQUEST] POST /events_cards")
         print(f"   Time: {datetime.datetime.utcnow().isoformat()}")
-        print(f"   Headers: {dict(request.headers)}")
         print(f"   Remote: {request.remote_addr}")
+        print(f"   Content-Type: {request.content_type}")
         
         try:
-            # Validate and parse input
-            if not request.is_json:
-                print("   ❌ ERROR: Not JSON")
+            # Try to get JSON data - be more flexible with content types
+            data = None
+            if request.is_json:
+                data = request.get_json(force=True)
+            elif request.content_type and 'application/json' in request.content_type:
+                data = request.get_json(force=True)
+            elif request.data:
+                try:
+                    import json
+                    data = json.loads(request.get_data(as_text=True))
+                except:
+                    pass
+            
+            # If still no data, try form data
+            if not data and request.form:
+                data = request.form.to_dict()
+            
+            logger.info(f"Parsed data: {data}")
+            print(f"   📥 Parsed data: {data}")
+            
+            if not data:
+                logger.error("❌ ERROR: No data received or couldn't parse")
+                print("   ❌ ERROR: No data received or couldn't parse")
                 return jsonify({"cards": [fallback_empty_card()]}), 400
             
-            data = request.get_json(force=True)
             category = normalize(safe_get(data, "category", ""))
             city = normalize(safe_get(data, "city", "")) or "mumbai"  # Default fallback
             
+            logger.info(f"Input: category='{category}', city='{city}'")
             print(f"   📥 Input: category='{category}', city='{city}'")
             
             if not category:
+                logger.error("❌ ERROR: No category provided")
                 print("   ❌ ERROR: No category provided")
                 return jsonify({"cards": [fallback_empty_card()]}), 400
             
@@ -355,8 +396,10 @@ def create_bot_routes(
             if not cards:
                 cards = [fallback_empty_card()]
             
+            logger.info(f"✅ Output: {len(cards)} cards generated")
             print(f"   ✅ Output: {len(cards)} cards generated")
             print("="*60 + "\n")
+            logger.info("="*60)
             
             # Log (non-blocking)
             try:
@@ -374,9 +417,12 @@ def create_bot_routes(
             return jsonify({"cards": cards})
             
         except Exception as e:
+            error_msg = traceback.format_exc()
+            logger.error(f"❌ EXCEPTION in events_cards: {str(e)}")
+            logger.error(error_msg)
             print(f"   ❌ EXCEPTION: {str(e)}")
             print("="*60 + "\n")
-            print("❌ events_cards error:", traceback.format_exc())
+            print("❌ events_cards error:", error_msg)
             return jsonify({"cards": [fallback_empty_card()]}), 400
 
     @app.route('/recommendations', methods=['POST'])
@@ -386,17 +432,45 @@ def create_bot_routes(
         Input: {"mood": "string", "movieGenre": "string", "songType": "string", "diet": "string"}
         Output: {"cards": [...], "movie": {...}, "song": {...}, "food": {...}, "inputs": {...}}
         """
-        # Log incoming request
+        # Log incoming request (both print and logger for Render visibility)
+        logger.info("="*60)
+        logger.info("🟡 [REQUEST] POST /recommendations")
+        logger.info(f"Time: {datetime.datetime.utcnow().isoformat()}")
+        logger.info(f"Remote: {request.remote_addr}")
+        logger.info(f"Content-Type: {request.content_type}")
+        logger.info(f"Headers: {dict(request.headers)}")
+        logger.info(f"Raw data: {request.get_data(as_text=True)[:200]}")
+        
         print("\n" + "="*60)
         print("🟡 [REQUEST] POST /recommendations")
         print(f"   Time: {datetime.datetime.utcnow().isoformat()}")
-        print(f"   Headers: {dict(request.headers)}")
         print(f"   Remote: {request.remote_addr}")
+        print(f"   Content-Type: {request.content_type}")
         
         try:
-            # Validate and parse input
-            if not request.is_json:
-                print("   ❌ ERROR: Not JSON")
+            # Try to get JSON data - be more flexible with content types
+            data = None
+            if request.is_json:
+                data = request.get_json(force=True)
+            elif request.content_type and 'application/json' in request.content_type:
+                data = request.get_json(force=True)
+            elif request.data:
+                try:
+                    import json
+                    data = json.loads(request.get_data(as_text=True))
+                except:
+                    pass
+            
+            # If still no data, try form data
+            if not data and request.form:
+                data = request.form.to_dict()
+            
+            logger.info(f"Parsed data: {data}")
+            print(f"   📥 Parsed data: {data}")
+            
+            if not data:
+                logger.error("❌ ERROR: No data received or couldn't parse")
+                print("   ❌ ERROR: No data received or couldn't parse")
                 return jsonify({
                     "cards": [fallback_empty_card()],
                     "movie": {"text": "", "url": None, "image": None, "poster": None},
@@ -405,12 +479,12 @@ def create_bot_routes(
                     "inputs": {"mood": "", "movieGenre": "", "songType": "", "diet": ""}
                 }), 400
             
-            data = request.get_json(force=True)
             mood = normalize(safe_get(data, "mood", ""))
             movie_genre = normalize(safe_get(data, "movieGenre", "random"))
             song_type = normalize(safe_get(data, "songType", ""))
             diet = normalize(safe_get(data, "diet", ""))
             
+            logger.info(f"Input: mood='{mood}', movieGenre='{movie_genre}', songType='{song_type}', diet='{diet}'")
             print(f"   📥 Input: mood='{mood}', movieGenre='{movie_genre}', songType='{song_type}', diet='{diet}'")
             
             # Get recommendations
