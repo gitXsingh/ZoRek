@@ -362,14 +362,20 @@ def generate_food_suggestion_by_diet(diet: str = "") -> str:
 
 def get_movie_recommendation_with_url(genre: str, mood: str = "") -> dict:
     """
-    Return a dict with text and url for a movie suggestion.
+    Return a dict with text, url, image, and poster for a movie suggestion.
+    Returns: {"text": str, "url": str | None, "image": str | None, "poster": str | None}
     """
     try:
         # Prefer items that truly match genre tokens
         results = search_movies_with_filters(genre, 0.0, "")
         for it in results:
             if it.get("url"):
-                return {"text": it.get("text"), "url": it.get("url")}
+                return {
+                    "text": it.get("text", ""),
+                    "url": it.get("url"),
+                    "image": it.get("image"),
+                    "poster": it.get("poster")
+                }
         # fallback
         q = normalize_genre_search_term((genre or "random"))
         url = f"https://www.omdbapi.com/?apikey={OMDB_KEY}&type=movie&s={q}"
@@ -380,11 +386,17 @@ def get_movie_recommendation_with_url(genre: str, mood: str = "") -> dict:
             d = requests.get(f"https://www.omdbapi.com/?apikey={OMDB_KEY}&i={imdb_id}&plot=short", timeout=8).json()
             title = d.get("Title", first.get("Title", "Unknown"))
             year = d.get("Year", first.get("Year", "N/A"))
+            poster = d.get("Poster") or first.get("Poster")
             imdb_url = f"https://www.imdb.com/title/{imdb_id}/" if imdb_id else None
-            return {"text": f"🎬 {title} ({year})", "url": imdb_url}
-        return {"text": "🎬 Couldn't find a movie for that genre. Try another one?", "url": None}
+            return {
+                "text": f"🎬 {title} ({year})",
+                "url": imdb_url,
+                "image": poster if poster and poster != "N/A" else None,
+                "poster": poster if poster and poster != "N/A" else None
+            }
+        return {"text": "🎬 Couldn't find a movie for that genre. Try another one?", "url": None, "image": None, "poster": None}
     except Exception as exc:
-        return {"text": f"⚠️ Movie API error: {str(exc)}", "url": None}
+        return {"text": f"⚠️ Movie API error: {str(exc)}", "url": None, "image": None, "poster": None}
 
 def get_song_recommendation_with_url(song_type: str = "", mood: str = "") -> dict:
     """
@@ -473,7 +485,8 @@ def suggest_music_with_links(query: str = "") -> list[dict]:
 
 def get_food_recommendation_with_url(diet: str = "") -> dict:
     """
-    Return a dict with text and url for a food suggestion from Spoonacular.
+    Return a dict with text, url, and image for a food/recipe suggestion.
+    Returns: {"text": str, "url": str | None, "image": str | None}
     """
     try:
         base = f"https://api.spoonacular.com/recipes/random?apiKey={SPOONACULAR_KEY}&number=1"
@@ -485,10 +498,10 @@ def get_food_recommendation_with_url(diet: str = "") -> dict:
             title = recipe.get("title", "Unknown Recipe")
             link = recipe.get("sourceUrl") or recipe.get("spoonacularSourceUrl")
             img = recipe.get("image")
-            return {"text": f"🍕 {title}", "url": link, "image": img}
-        return {"text": "🍕 Couldn't fetch a recipe right now. Try again?", "url": None}
+            return {"text": f"🍕 {title}", "url": link, "image": img if img else None}
+        return {"text": "🍕 Couldn't fetch a recipe right now. Try again?", "url": None, "image": None}
     except Exception as exc:
-        return {"text": f"⚠️ Food API error: {str(exc)}", "url": None}
+        return {"text": f"⚠️ Food API error: {str(exc)}", "url": None, "image": None}
 
 def search_movies_with_filters(genre: str = "", min_imdb: float = 0.0, year: str = "") -> list[dict]:
     """
@@ -651,144 +664,9 @@ def fallback_event_links(category: str, city: str) -> list[dict]:
     ]
 
 
-# Bot routes (/zorek, /chat, /suggest_cards, /events_cards, /recommendations, /widget_detail)
-# are now handled by bot module - registered below
-
-@app.route('/suggest', methods=['POST'])
-def suggest():
-    """
-    Suggest something endpoint.
-    Expects JSON:
-    {
-      "category": "Movies|Books|Games|Food",
-      "prefs": { ... }  // category-specific
-    }
-    """
-    try:
-        data = request.get_json(force=True)
-        category = str(data.get("category", "")).strip().lower()
-        prefs = data.get("prefs", {}) or {}
-        results = []
-
-        if category == "movies":
-            genre = prefs.get("genre", "")
-            min_imdb = float(prefs.get("minImdb", 0) or 0)
-            year = str(prefs.get("year", "")).strip()
-            results = search_movies_with_filters(genre, min_imdb, year)
-        elif category == "books":
-            subject = prefs.get("subject", "")
-            lang = prefs.get("lang", "")
-            results = suggest_books_with_links(subject, lang)
-        elif category == "games":
-            keyword = prefs.get("keyword", "")
-            results = suggest_games_with_links(keyword)
-        elif category == "music":
-            keyword = prefs.get("songType") or prefs.get("keyword") or prefs.get("query", "")
-            results = suggest_music_with_links(keyword)
-        elif category == "food":
-            diet = prefs.get("diet", "")
-            results = [get_food_recommendation_with_url(diet)]
-        else:
-            return jsonify({"error": "Unknown category"}), 400
-
-        # Log to Google Sheets
-        try:
-            if SHEET_BEST_URL:
-                log = {
-                    "Endpoint": "suggest",
-                    "Category": category,
-                    "Preferences": str(prefs),
-                    "ResultsCount": len(results),
-                    "Timestamp": str(datetime.datetime.now())
-                }
-                requests.post(SHEET_BEST_URL, json=log, timeout=5)
-        except Exception as e:
-            print("⚠️ Logging failed:", e)
-
-        return jsonify({"items": results})
-    except Exception as e:
-        print("❌ Suggest exception:", traceback.format_exc())
-        return jsonify({"error": str(e)}), 400
-
-@app.route('/events', methods=['POST'])
-def events():
-    """
-    Book an event flow.
-    Expects JSON:
-    {
-      "category": "Movies|Talkshow|Concerts|Find events",
-      "city": "City name" // used for location-based search
-    }
-    """
-    try:
-        data = request.get_json(force=True)
-        category = str(data.get("category", "")).strip().lower()
-        city = str(data.get("city", "")).strip()
-        results = []
-
-        if category in ["concerts", "talkshow", "theater", "sports"]:
-            loc = geocode_city(city) if city else None
-            if not loc:
-                return jsonify({"error": "Could not determine location"}), 400
-            lat, lon = loc
-            # Try SeatGeek; if not configured, show helpful links instead
-            if SEATGEEK_CLIENT_ID:
-                results = events_from_seatgeek(category, lat, lon)
-                if not results:
-                    results = fallback_event_links(category, city)
-            else:
-                results = fallback_event_links(category, city)
-        elif category in ["find events", "find"]:
-            loc = geocode_city(city) if city else None
-            if not loc:
-                return jsonify({"error": "Could not determine location"}), 400
-            lat, lon = loc
-            # default to concert mix
-            results = events_from_seatgeek("concerts", lat, lon)
-        elif category == "movies":
-            # If TMDB key configured, fetch now-playing; else fallback to popular iTunes movies
-            if TMDB_KEY:
-                try:
-                    data = requests.get(f"https://api.themoviedb.org/3/movie/now_playing?api_key={TMDB_KEY}&language=en-US&page=1", timeout=10).json()
-                    items = []
-                    for m in data.get("results", [])[:10]:
-                        title = m.get("title")
-                        url = f"https://www.themoviedb.org/movie/{m.get('id')}"
-                        dt = m.get("release_date", "")
-                        items.append({"text": f"🎟️ {title} — {dt}", "url": url})
-                    results = items or [{"text": "No now-playing movies found.", "url": None}]
-                except Exception as exc:
-                    results = [{"text": f"TMDB error: {str(exc)}", "url": None}]
-            else:
-                try:
-                    data = requests.get("https://itunes.apple.com/search?term=movie&entity=movie&limit=10", timeout=10).json()
-                    items = [{"text": f"🎟️ {m.get('trackName','Movie')}", "url": m.get('trackViewUrl')} for m in data.get("results", [])]
-                    results = items or [{"text": "No movies found.", "url": None}]
-                except Exception as exc:
-                    results = [{"text": f"iTunes error: {str(exc)}", "url": None}]
-        else:
-            return jsonify({"error": "Unknown event category"}), 400
-
-        # Log to Google Sheets
-        try:
-            if SHEET_BEST_URL:
-                log = {
-                    "Endpoint": "events",
-                    "Category": category,
-                    "City": city,
-                    "ResultsCount": len(results),
-            "Timestamp": str(datetime.datetime.now())
-                }
-                requests.post(SHEET_BEST_URL, json=log, timeout=5)
-        except Exception as e:
-            print("⚠️ Logging failed:", e)
-
-        return jsonify({"items": results})
-    except Exception as e:
-        print("❌ Events exception:", traceback.format_exc())
-        return jsonify({"error": str(e)}), 400
-
-# Legacy functions removed - all handled by bot module (bot/routes.py)
+# Bot routes: ONLY /suggest_cards, /events_cards, /recommendations
+# All registered via bot module below
+# Legacy /suggest and /events endpoints removed - use card endpoints instead
 
 @app.route('/oauth/spotify/start')
 def spotify_start():
@@ -919,16 +797,13 @@ def ai_commentary():
         return jsonify({"error": str(e)}), 400
 
 # ====== Register Zoho SalesIQ Bot Routes ======
-# Import and register all bot endpoints
+# Import and register ONLY the 3 required bot endpoints
 from bot.routes import create_bot_routes
-from bot.widgets import create_widget_routes
-from bot.handlers import log_to_sheet as bot_log_to_sheet, format_salesiq_card, format_event_card
 
-# Register all Zoho SalesIQ bot routes with required dependencies
+# Register ONLY the 3 required endpoints for Zoho SalesIQ Script Bot
 create_bot_routes(
     app,
     # API functions
-    generate_suggestion=generate_suggestion,
     search_movies_with_filters=search_movies_with_filters,
     suggest_books_with_links=suggest_books_with_links,
     suggest_games_with_links=suggest_games_with_links,
@@ -942,18 +817,7 @@ create_bot_routes(
     # Configuration
     SHEET_BEST_URL=SHEET_BEST_URL,
     TMDB_KEY=TMDB_KEY,
-    SEATGEEK_CLIENT_ID=SEATGEEK_CLIENT_ID,
-    # Handler functions
-    parse_user_message=parse_user_message,
-    log_to_sheet_func=bot_log_to_sheet,
-    format_salesiq_card=format_salesiq_card,
-    format_event_card=format_event_card
-)
-
-# Register widget routes for operator panel
-create_widget_routes(
-    app,
-    spotify_token_valid_func=spotify_token_valid
+    SEATGEEK_CLIENT_ID=SEATGEEK_CLIENT_ID
 )
 
 @app.route('/health_check', methods=['GET'])
@@ -1007,9 +871,8 @@ def health_check():
         checks["SheetBest"] = "FAIL"
         all_ok = False
     
-    # Check Local /zorek endpoint
+    # Check Local endpoint (self-check)
     try:
-        # This is a self-check, so we'll just verify the endpoint exists
         checks["Local"] = "PASS"
     except Exception:
         checks["Local"] = "FAIL"
@@ -1058,18 +921,15 @@ def internal_error(e):
 def home():
     """Root endpoint - returns API information"""
     return jsonify({
-        "service": "ZoRek - Zoho SalesIQ Bot API",
-        "version": "1.0.0",
+        "service": "ZoRek - Zoho SalesIQ Script Bot API",
+        "version": "2.0.0",
         "endpoints": {
-            "main_webhook": "POST /zorek",
-            "plug_1_suggest": "POST /suggest_cards",
-            "plug_2_events": "POST /events_cards",
-            "plug_3_recommendations": "POST /recommendations",
-            "chat": "POST /chat",
-            "widget": "GET /widget_detail",
+            "suggest_cards": "POST /suggest_cards",
+            "events_cards": "POST /events_cards",
+            "recommendations": "POST /recommendations",
             "health": "GET /health_check"
         },
-        "documentation": "See ZoRek_SalesIQ_Integration_Guide.md for setup instructions"
+        "status": "Ready for Zoho SalesIQ Script Bot - Only 3 endpoints available"
     })
 
 

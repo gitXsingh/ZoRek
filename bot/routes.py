@@ -1,6 +1,6 @@
 """
 Bot Routes - Zoho SalesIQ Bot Endpoints
-All endpoints for Zoho SalesIQ chat bot integration.
+ONLY 3 endpoints: /suggest_cards, /events_cards, /recommendations
 """
 
 from flask import request, jsonify
@@ -9,14 +9,52 @@ import traceback
 import requests
 from typing import Dict, List
 
-# Import API functions from app (these will be passed as dependencies)
-# This keeps bot module decoupled from app implementation
 
+# ====== UTILITY HELPERS ======
+
+def safe_get(obj: dict, key: str, default=None):
+    """Safely get value from dict with default fallback"""
+    if not obj:
+        return default
+    return obj.get(key, default) or default
+
+
+def normalize(value: str) -> str:
+    """Normalize string values - trim and lowercase"""
+    if not value:
+        return ""
+    return str(value).strip().lower()
+
+
+def make_card(title: str, desc: str = "", img: str = None, label: str = "View", url: str = None) -> dict:
+    """Create a standardized card object"""
+    return {
+        "title": str(title) if title else "No Title",
+        "description": str(desc) if desc else "",
+        "imageUrl": str(img) if img else None,
+        "action": {
+            "label": str(label) if label else "Open",
+            "url": str(url) if url else None
+        }
+    }
+
+
+def fallback_empty_card() -> dict:
+    """Return a fallback card when no data is available"""
+    return make_card(
+        title="No Data",
+        desc="Try again later",
+        img=None,
+        label="Open",
+        url=None
+    )
+
+
+# ====== MAIN ENDPOINT REGISTRATION ======
 
 def create_bot_routes(
     app,
     # API functions
-    generate_suggestion,
     search_movies_with_filters,
     suggest_books_with_links,
     suggest_games_with_links,
@@ -30,378 +68,376 @@ def create_bot_routes(
     # Configuration
     SHEET_BEST_URL: str,
     TMDB_KEY: str,
-    SEATGEEK_CLIENT_ID: str,
-    # Handler functions
-    parse_user_message,
-    log_to_sheet_func,
-    format_salesiq_card,
-    format_event_card
+    SEATGEEK_CLIENT_ID: str
 ):
     """
-    Create and register all Zoho SalesIQ bot routes.
-    
-    Args:
-        app: Flask app instance
-        ...: All required functions and config
+    Register ONLY the 3 required endpoints for Zoho SalesIQ Script Bot.
     """
     
-    @app.route('/zorek', methods=['POST', 'HEAD'])
-    def zorek():
-        """
-        Main webhook endpoint for Zoho SalesIQ integration.
-        Handles Movies, Books, and Food suggestions based on input data.
-        Supports both JSON and form-data requests.
-        """
-        # Zoho sends HEAD first to validate
-        if request.method == 'HEAD':
-            return '', 200
-
-        try:
-            # Universal Input Handling
-            if request.is_json:
-                data = request.get_json(force=True)
-            else:
-                data = request.form.to_dict()
-
-            # Normalize input
-            choice = str(data.get("choice", "")).strip()
-            genre = str(data.get("genre", "random")).strip()
-            mood = str(data.get("mood", "")).strip()
-            name = str(data.get("name", "")).strip()
-            email = str(data.get("email", "")).strip()
-
-            suggestion = generate_suggestion(choice, genre, mood)
-
-            # Log Everything (for analytics/debugging)
-            log_data = {
-                "name": name,
-                "email": email,
-                "choice": choice,
-                "genre": genre,
-                "mood": mood,
-                "suggestion": suggestion
-            }
-            log_to_sheet_func(SHEET_BEST_URL, "/zorek", log_data)
-
-            # Final Response
-            return jsonify({"suggestion": suggestion, "status": "success"})
-
-        except Exception as e:
-            print("❌ Zorek webhook exception:", traceback.format_exc())
-            return jsonify({
-                "error": str(e),
-                "status": "failed"
-            }), 500
-
-    @app.route('/chat', methods=['POST'])
-    def chat():
-        """
-        Rule-based chat endpoint that accepts a message and returns a recommendation.
-        Expected JSON: { "message": "...", "name": "...", "email": "..." }
-        """
-        try:
-            data = request.get_json(force=True)
-            message = str(data.get("message", "")).strip()
-            name = str(data.get("name", "")).strip()
-            email = str(data.get("email", "")).strip()
-
-            parsed = parse_user_message(message)
-            choice = parsed["choice"]
-            genre = parsed["genre"]
-            mood = parsed["mood"]
-
-            suggestion = generate_suggestion(choice, genre, mood)
-            reply = f"Here's a {choice} recommendation for {genre}:\n{suggestion}"
-
-            # Log to sheet
-            log_data = {
-                "name": name or "ChatUser",
-                "email": email,
-                "choice": choice,
-                "genre": genre,
-                "mood": mood,
-                "suggestion": suggestion
-            }
-            log_to_sheet_func(SHEET_BEST_URL, "/chat", log_data)
-
-            return jsonify({"response": reply, "reply": reply, "choice": choice, "genre": genre})
-        except Exception as e:
-            print("❌ Chat exception:", traceback.format_exc())
-            return jsonify({"error": str(e)}), 400
-
     @app.route('/suggest_cards', methods=['POST'])
     def suggest_cards():
         """
-        Plug 1: Suggest Something - Returns results as SalesIQ cards.
-        Standardized format for Zoho SalesIQ plug integration.
-        
-        Expected JSON:
-        {
-          "category": "Movies|Books|Games|Food|Music",
-          "prefs": {
-            "genre": "Drama",           // For Movies
-            "minImdb": 7.0,             // For Movies (optional)
-            "year": "2019",             // For Movies (optional)
-            "subject": "Fiction",       // For Books
-            "keyword": "racing",        // For Games
-            "songType": "Pop",          // For Music
-            "diet": "Veg"               // For Food
-          }
-        }
+        Endpoint 1: Suggest Something
+        Input: {"category": "string", "prefs": {}}
+        Output: {"cards": [{title, description, imageUrl, action: {label, url}}]}
         """
         try:
+            # Validate and parse input
+            if not request.is_json:
+                return jsonify({"cards": [fallback_empty_card()]}), 400
+            
             data = request.get_json(force=True)
-            category = str(data.get("category", "")).strip().lower()
-            prefs = data.get("prefs", {}) or {}
+            category = normalize(safe_get(data, "category", ""))
+            prefs = safe_get(data, "prefs", {}) or {}
+            
+            if not category:
+                return jsonify({"cards": [fallback_empty_card()]}), 400
             
             # Get items based on category
             items = []
-            if category == "movies":
-                genre = prefs.get("genre", "")
-                min_imdb = float(prefs.get("minImdb", 0) or 0)
-                year = str(prefs.get("year", "")).strip()
-                items = search_movies_with_filters(genre, min_imdb, year)
-            elif category == "books":
-                subject = prefs.get("subject", "")
-                lang = prefs.get("lang", "")
-                items = suggest_books_with_links(subject, lang)
-            elif category == "games":
-                keyword = prefs.get("keyword", "")
-                items = suggest_games_with_links(keyword)
-            elif category == "music":
-                keyword = prefs.get("songType") or prefs.get("keyword") or prefs.get("query", "")
-                items = suggest_music_with_links(keyword)
-            elif category == "food":
-                diet = prefs.get("diet", "")
-                items = [get_food_recommendation_with_url(diet)]
-            else:
-                return jsonify({"error": "Unknown category. Use: Movies, Books, Games, Food, or Music"}), 400
+            try:
+                if category == "movies":
+                    genre = normalize(safe_get(prefs, "genre", ""))
+                    min_imdb = float(safe_get(prefs, "minImdb", 0) or 0)
+                    year = normalize(safe_get(prefs, "year", ""))
+                    items = search_movies_with_filters(genre, min_imdb, year)
+                elif category == "books":
+                    subject = normalize(safe_get(prefs, "subject", ""))
+                    lang = normalize(safe_get(prefs, "lang", ""))
+                    items = suggest_books_with_links(subject, lang)
+                elif category == "games":
+                    keyword = normalize(safe_get(prefs, "keyword", ""))
+                    items = suggest_games_with_links(keyword)
+                elif category == "music":
+                    keyword = normalize(safe_get(prefs, "songType") or safe_get(prefs, "keyword") or safe_get(prefs, "query", ""))
+                    items = suggest_music_with_links(keyword)
+                elif category == "food":
+                    diet = normalize(safe_get(prefs, "diet", ""))
+                    food_item = get_food_recommendation_with_url(diet)
+                    items = [food_item] if food_item else []
+                else:
+                    items = []
+            except Exception as e:
+                print(f"⚠️ Error fetching items for {category}: {e}")
+                items = []
             
-            # Transform to SalesIQ card format
+            # Transform to cards format
             cards = []
-            for it in items[:10]:
+            for it in (items or [])[:10]:
                 if isinstance(it, dict):
-                    card = format_salesiq_card(it, category)
-                    cards.append(card)
+                    text = safe_get(it, "text", "")
+                    url = safe_get(it, "url")
+                    image = safe_get(it, "image") or safe_get(it, "poster")
+                    
+                    # Clean title from text
+                    title = text.replace("🎬", "").replace("📚", "").replace("🎮", "").replace("🎵", "").replace("🍕", "").strip()
+                    if " — " in title:
+                        title = title.split(" — ")[0].strip()
+                    if "—" in title:
+                        title = title.split("—")[0].strip()
+                    
+                    # Extract description
+                    desc = category.title()
+                    if "⭐" in text:
+                        desc = text.split("⭐")[1].strip() if "⭐" in text else desc
+                    
+                    # Set action label based on category
+                    action_label = "View"
+                    if category == "movies":
+                        action_label = "Watch Now"
+                    elif category == "books":
+                        action_label = "Read More"
+                    elif category == "games":
+                        action_label = "Buy Game"
+                    elif category == "music":
+                        action_label = "Listen"
+                    elif category == "food":
+                        action_label = "View Recipe"
+                    
+                    cards.append(make_card(
+                        title=title[:100] if title else "Unknown",
+                        desc=desc[:200] if desc else category.title(),
+                        img=str(image) if image else None,
+                        label=action_label,
+                        url=str(url) if url else None
+                    ))
             
-            # Log to Google Sheets
+            # Ensure cards array is never empty
+            if not cards:
+                cards = [fallback_empty_card()]
+            
+            # Log (non-blocking)
             try:
                 if SHEET_BEST_URL:
-                    log = {
+                    requests.post(SHEET_BEST_URL, json={
                         "Endpoint": "suggest_cards",
                         "Category": category,
-                        "Preferences": str(prefs),
                         "ResultsCount": len(cards),
-                        "Timestamp": str(datetime.datetime.now())
-                    }
-                    requests.post(SHEET_BEST_URL, json=log, timeout=5)
-            except Exception as e:
-                print("⚠️ Logging failed:", e)
+                        "Timestamp": datetime.datetime.utcnow().isoformat()
+                    }, timeout=3)
+            except Exception:
+                pass  # Non-blocking
             
             return jsonify({"cards": cards})
+            
         except Exception as e:
             print("❌ suggest_cards error:", traceback.format_exc())
-            return jsonify({"error": str(e)}), 400
+            return jsonify({"cards": [fallback_empty_card()]}), 400
 
     @app.route('/events_cards', methods=['POST'])
     def events_cards():
         """
-        Plug 2: Book an Event - Returns events as SalesIQ cards.
-        Standardized format for Zoho SalesIQ plug integration.
-        
-        Expected JSON:
-        {
-          "category": "Movies|Concerts|Talkshow|Find Events",
-          "city": "Mumbai"
-        }
+        Endpoint 2: Book an Event
+        Input: {"category": "string", "city": "string"}
+        Output: {"cards": [{title, description, imageUrl, action: {label, url}}]}
         """
         try:
+            # Validate and parse input
+            if not request.is_json:
+                return jsonify({"cards": [fallback_empty_card()]}), 400
+            
             data = request.get_json(force=True)
-            category = str(data.get("category", "")).strip().lower()
-            city = str(data.get("city", "")).strip() or "Mumbai"  # Default to Mumbai
-            results = []
+            category = normalize(safe_get(data, "category", ""))
+            city = normalize(safe_get(data, "city", "")) or "mumbai"  # Default fallback
+            
+            if not category:
+                return jsonify({"cards": [fallback_empty_card()]}), 400
             
             # Get events based on category
-            if category in ["concerts", "talkshow", "theater", "sports"]:
-                loc = geocode_city(city) if city else None
-                if not loc:
-                    # If geocoding fails, still return fallback links
-                    results = fallback_event_links(category, city)
-                else:
-                    lat, lon = loc
-                    if SEATGEEK_CLIENT_ID:
-                        results = events_from_seatgeek(category, lat, lon)
+            results = []
+            try:
+                if category in ["concerts", "talkshow", "theater", "sports"]:
+                    loc = geocode_city(city) if city else None
+                    if loc:
+                        lat, lon = loc
+                        if SEATGEEK_CLIENT_ID:
+                            results = events_from_seatgeek(category, lat, lon)
                         if not results:
                             results = fallback_event_links(category, city)
                     else:
                         results = fallback_event_links(category, city)
-            elif category in ["find events", "find"]:
-                loc = geocode_city(city) if city else None
-                if not loc:
-                    results = fallback_event_links("concerts", city)
-                else:
-                    lat, lon = loc
-                    results = events_from_seatgeek("concerts", lat, lon)
-                    if not results:
+                elif category in ["find events", "find"]:
+                    loc = geocode_city(city) if city else None
+                    if loc:
+                        lat, lon = loc
+                        results = events_from_seatgeek("concerts", lat, lon)
+                        if not results:
+                            results = fallback_event_links("concerts", city)
+                    else:
                         results = fallback_event_links("concerts", city)
-            elif category == "movies":
-                if TMDB_KEY:
-                    try:
-                        data_resp = requests.get(
-                            f"https://api.themoviedb.org/3/movie/now_playing?api_key={TMDB_KEY}&language=en-US&page=1",
-                            timeout=10
-                        ).json()
-                        for m in data_resp.get("results", [])[:10]:
-                            title = m.get("title")
-                            tmdb_id = m.get("id")
-                            poster_path = m.get("poster_path")
-                            poster = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
-                            dt = m.get("release_date", "")
-                            # Use BookMyShow for booking
-                            bms_url = f"https://in.bookmyshow.com/explore/movies-{city.lower()}"
-                            results.append({
-                                "text": f"🎟️ {title} — {dt}",
-                                "url": bms_url,
-                                "poster": poster,
-                                "image": poster
-                            })
-                    except Exception:
-                        results = []
+                elif category == "movies":
+                    if TMDB_KEY:
+                        try:
+                            data_resp = requests.get(
+                                f"https://api.themoviedb.org/3/movie/now_playing?api_key={TMDB_KEY}&language=en-US&page=1",
+                                timeout=10
+                            ).json()
+                            for m in safe_get(data_resp, "results", [])[:10]:
+                                title = safe_get(m, "title", "Movie")
+                                poster_path = safe_get(m, "poster_path")
+                                poster = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
+                                dt = safe_get(m, "release_date", "")
+                                bms_url = f"https://in.bookmyshow.com/explore/movies-{city}"
+                                results.append({
+                                    "text": f"🎟️ {title} — {dt}",
+                                    "url": bms_url,
+                                    "image": poster,
+                                    "poster": poster
+                                })
+                        except Exception:
+                            results = fallback_event_links("movies", city)
+                    else:
+                        results = fallback_event_links("movies", city)
                 else:
-                    try:
-                        data_resp = requests.get(
-                            "https://itunes.apple.com/search?term=movie&entity=movie&limit=10",
-                            timeout=10
-                        ).json()
-                        for m in data_resp.get("results", []):
-                            results.append({
-                                "text": f"🎟️ {m.get('trackName','Movie')}",
-                                "url": m.get('trackViewUrl')
-                            })
-                    except Exception:
-                        results = []
-            else:
-                return jsonify({"error": "Unknown event category"}), 400
+                    results = fallback_event_links(category, city)
+            except Exception as e:
+                print(f"⚠️ Error fetching events for {category}: {e}")
+                results = fallback_event_links(category, city)
             
-            # Transform to SalesIQ card format
+            # Transform to cards format
             cards = []
-            for it in results[:10]:
+            for it in (results or [])[:10]:
                 if isinstance(it, dict):
-                    card = format_event_card(it, category, city)
-                    cards.append(card)
+                    text = safe_get(it, "text", "")
+                    url = safe_get(it, "url")
+                    image = safe_get(it, "image") or safe_get(it, "poster")
+                    
+                    title = text.replace("🎟️", "").strip()
+                    if "—" in title:
+                        title = title.split("—")[0].strip()
+                    
+                    desc = f"Event in {city.title()}"
+                    if category == "movies":
+                        desc = f"Now Playing in {city.title()}"
+                    elif category == "concerts":
+                        desc = f"Concert in {city.title()}"
+                    
+                    cards.append(make_card(
+                        title=title[:100] if title else "Event",
+                        desc=desc,
+                        img=str(image) if image else None,
+                        label="Book Tickets",
+                        url=str(url) if url else None
+                    ))
             
-            # Log to Google Sheets
+            # Ensure cards array is never empty
+            if not cards:
+                cards = [fallback_empty_card()]
+            
+            # Log (non-blocking)
             try:
                 if SHEET_BEST_URL:
-                    log = {
+                    requests.post(SHEET_BEST_URL, json={
                         "Endpoint": "events_cards",
                         "Category": category,
                         "City": city,
                         "ResultsCount": len(cards),
-                        "Timestamp": str(datetime.datetime.now())
-                    }
-                    requests.post(SHEET_BEST_URL, json=log, timeout=5)
-            except Exception as e:
-                print("⚠️ Logging failed:", e)
+                        "Timestamp": datetime.datetime.utcnow().isoformat()
+                    }, timeout=3)
+            except Exception:
+                pass  # Non-blocking
             
             return jsonify({"cards": cards})
+            
         except Exception as e:
             print("❌ events_cards error:", traceback.format_exc())
-            return jsonify({"error": str(e)}), 400
+            return jsonify({"cards": [fallback_empty_card()]}), 400
 
     @app.route('/recommendations', methods=['POST'])
     def recommendations():
         """
-        Plug 3: My Pick Combo - Returns combined recommendations for movie, song, and food.
-        Standardized format for Zoho SalesIQ plug integration.
-        
-        Expected JSON:
-        {
-          "mood": "happy",
-          "movieGenre": "action",
-          "songType": "pop",
-          "diet": "veg" | "non-veg"
-        }
+        Endpoint 3: My Pick Combo
+        Input: {"mood": "string", "movieGenre": "string", "songType": "string", "diet": "string"}
+        Output: {"cards": [...], "movie": {...}, "song": {...}, "food": {...}, "inputs": {...}}
         """
         try:
-            data = request.get_json(force=True) if request.is_json else request.form.to_dict()
-            mood = str(data.get("mood", "")).strip()
-            movie_genre = str(data.get("movieGenre", "random")).strip()
-            song_type = str(data.get("songType", "")).strip()
-            diet = str(data.get("diet", "")).strip()
-
-            # Derive suggestions with links
-            movie = get_movie_recommendation_with_url(movie_genre, mood)
-            song = get_song_recommendation_with_url(song_type, mood)
-            food = get_food_recommendation_with_url(diet)
-
-            # Log to sheet
-            log_data = {
-                "name": "WebChat",
-                "email": data.get("email", ""),
-                "choice": f"Combined: movie={movie_genre}, song={song_type}, diet={diet}",
-                "genre": movie_genre,
-                "mood": mood,
-                "suggestion": f"{movie.get('text')} | {song.get('text')} | {food.get('text')}"
+            # Validate and parse input
+            if not request.is_json:
+                return jsonify({
+                    "cards": [fallback_empty_card()],
+                    "movie": {"text": "", "url": None, "image": None, "poster": None},
+                    "song": {"text": "", "url": None, "image": None, "source": ""},
+                    "food": {"text": "", "url": None, "image": None},
+                    "inputs": {"mood": "", "movieGenre": "", "songType": "", "diet": ""}
+                }), 400
+            
+            data = request.get_json(force=True)
+            mood = normalize(safe_get(data, "mood", ""))
+            movie_genre = normalize(safe_get(data, "movieGenre", "random"))
+            song_type = normalize(safe_get(data, "songType", ""))
+            diet = normalize(safe_get(data, "diet", ""))
+            
+            # Get recommendations
+            movie = {}
+            song = {}
+            food = {}
+            
+            try:
+                movie = get_movie_recommendation_with_url(movie_genre, mood) or {}
+                song = get_song_recommendation_with_url(song_type, mood) or {}
+                food = get_food_recommendation_with_url(diet) or {}
+            except Exception as e:
+                print(f"⚠️ Error getting recommendations: {e}")
+                # Use empty defaults
+                movie = {"text": "", "url": None, "image": None, "poster": None}
+                song = {"text": "", "url": None, "image": None, "source": ""}
+                food = {"text": "", "url": None, "image": None}
+            
+            # Ensure all fields exist with proper defaults
+            movie_result = {
+                "text": str(safe_get(movie, "text", "")),
+                "url": str(safe_get(movie, "url")) if safe_get(movie, "url") else None,
+                "image": str(safe_get(movie, "image")) if safe_get(movie, "image") else None,
+                "poster": str(safe_get(movie, "poster")) if safe_get(movie, "poster") else None
             }
-            log_to_sheet_func(SHEET_BEST_URL, "/recommendations", log_data)
-
-            # Transform to cards format for Zoho SalesIQ compatibility
+            
+            # Determine song source
+            song_source = "Spotify"
+            if safe_get(song, "url"):
+                song_url = str(safe_get(song, "url"))
+                if "spotify.com" in song_url:
+                    song_source = "Spotify"
+                elif "itunes.apple.com" in song_url or "music.apple.com" in song_url:
+                    song_source = "iTunes"
+            
+            song_result = {
+                "text": str(safe_get(song, "text", "")),
+                "url": str(safe_get(song, "url")) if safe_get(song, "url") else None,
+                "image": str(safe_get(song, "image")) if safe_get(song, "image") else None,
+                "source": str(safe_get(song, "source", song_source))
+            }
+            
+            food = {
+                "text": str(safe_get(food, "text", "")),
+                "url": str(safe_get(food, "url")) if safe_get(food, "url") else None,
+                "image": str(safe_get(food, "image")) if safe_get(food, "image") else None
+            }
+            
+            # Create cards from recommendations
             cards = []
             
             # Movie card
-            if movie and movie.get("text"):
-                movie_text = movie.get("text", "")
-                movie_title = movie_text.replace("🎬", "").strip()
+            if movie_result.get("text"):
+                movie_title = str(movie_result["text"]).replace("🎬", "").strip()
                 if " — " in movie_title:
                     movie_title = movie_title.split(" — ")[0].strip()
-                cards.append({
-                    "title": movie_title,
-                    "imageUrl": movie.get("image") or movie.get("poster"),
-                    "description": f"Movie | {movie_genre.title()}" if movie_genre else "Movie",
-                    "action": {
-                        "label": "View",
-                        "url": movie.get("url")
-                    }
-                })
+                cards.append(make_card(
+                    title=movie_title[:100] if movie_title else "Movie",
+                    desc=f"Movie | {movie_genre.title()}" if movie_genre else "Movie",
+                    img=movie_result.get("image") or movie_result.get("poster"),
+                    label="View",
+                    url=movie_result.get("url")
+                ))
             
             # Song card
-            if song and song.get("text"):
-                song_text = song.get("text", "")
-                song_title = song_text.replace("🎵", "").strip()
+            if song_result.get("text"):
+                song_title = str(song_result["text"]).replace("🎵", "").strip()
                 if " — " in song_title:
                     song_title = song_title.split(" — ")[0].strip()
-                cards.append({
-                    "title": song_title,
-                    "imageUrl": song.get("image"),
-                    "description": f"Music | {song_type.title()}" if song_type else "Music",
-                    "action": {
-                        "label": "Listen",
-                        "url": song.get("url")
-                    }
-                })
+                cards.append(make_card(
+                    title=song_title[:100] if song_title else "Song",
+                    desc=f"Music | {song_type.title()}" if song_type else "Music",
+                    img=song_result.get("image"),
+                    label="Listen",
+                    url=song_result.get("url")
+                ))
             
             # Food card
-            if food and food.get("text"):
-                food_text = food.get("text", "")
-                food_title = food_text.replace("🍕", "").strip()
+            if food.get("text"):
+                food_title = str(food["text"]).replace("🍕", "").strip()
                 if " — " in food_title:
                     food_title = food_title.split(" — ")[0].strip()
-                cards.append({
-                    "title": food_title,
-                    "imageUrl": food.get("image"),
-                    "description": f"Food | {diet.title()}" if diet else "Food",
-                    "action": {
-                        "label": "View Recipe",
-                        "url": food.get("url")
-                    }
-                })
+                cards.append(make_card(
+                    title=food_title[:100] if food_title else "Food",
+                    desc=f"Food | {diet.title()}" if diet else "Food",
+                    img=food.get("image"),
+                    label="View Recipe",
+                    url=food.get("url")
+                ))
+            
+            # Ensure cards array is never empty
+            if not cards:
+                cards = [fallback_empty_card()]
+            
+            # Log (non-blocking)
+            try:
+                if SHEET_BEST_URL:
+                    requests.post(SHEET_BEST_URL, json={
+                        "Endpoint": "recommendations",
+                        "Mood": mood,
+                        "MovieGenre": movie_genre,
+                        "SongType": song_type,
+                        "Diet": diet,
+                        "Timestamp": datetime.datetime.utcnow().isoformat()
+                    }, timeout=3)
+            except Exception:
+                pass  # Non-blocking
             
             return jsonify({
-                "movie": movie,
-                "song": song,
+                "cards": cards,
+                "movie": movie_result,
+                "song": song_result,
                 "food": food,
-                "cards": cards,  # Zoho SalesIQ compatible format
                 "inputs": {
                     "mood": mood,
                     "movieGenre": movie_genre,
@@ -409,12 +445,13 @@ def create_bot_routes(
                     "diet": diet
                 }
             })
+            
         except Exception as e:
-            print("❌ Recommendations exception:", traceback.format_exc())
-            return jsonify({"error": str(e)}), 400
-
-
-def register_bot_routes(app, **kwargs):
-    """Register all bot routes with the Flask app"""
-    create_bot_routes(app, **kwargs)
-
+            print("❌ Recommendations error:", traceback.format_exc())
+            return jsonify({
+                "cards": [fallback_empty_card()],
+                "movie": {"text": "", "url": None, "image": None, "poster": None},
+                "song": {"text": "", "url": None, "image": None, "source": ""},
+                "food": {"text": "", "url": None, "image": None},
+                "inputs": {"mood": "", "movieGenre": "", "songType": "", "diet": ""}
+            }), 400
