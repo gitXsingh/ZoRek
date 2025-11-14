@@ -162,29 +162,58 @@ def create_bot_routes(
                     genre = normalize(safe_get(prefs, "genre", ""))
                     min_imdb = float(safe_get(prefs, "minImdb", 0) or 0)
                     year = normalize(safe_get(prefs, "year", ""))
+                    logger.info(f"Fetching movies: genre='{genre}', min_imdb={min_imdb}, year='{year}'")
+                    print(f"   🎬 Fetching movies: genre='{genre}', min_imdb={min_imdb}, year='{year}'")
                     items = search_movies_with_filters(genre, min_imdb, year)
+                    logger.info(f"Movies API returned {len(items)} items")
+                    print(f"   🎬 Movies API returned {len(items)} items")
                 elif category == "books":
                     subject = normalize(safe_get(prefs, "subject", ""))
                     lang = normalize(safe_get(prefs, "lang", ""))
+                    logger.info(f"Fetching books: subject='{subject}', lang='{lang}'")
+                    print(f"   📚 Fetching books: subject='{subject}', lang='{lang}'")
                     items = suggest_books_with_links(subject, lang)
+                    logger.info(f"Books API returned {len(items)} items")
+                    print(f"   📚 Books API returned {len(items)} items")
                 elif category == "games":
                     keyword = normalize(safe_get(prefs, "keyword", ""))
+                    logger.info(f"Fetching games: keyword='{keyword}'")
+                    print(f"   🎮 Fetching games: keyword='{keyword}'")
                     items = suggest_games_with_links(keyword)
+                    logger.info(f"Games API returned {len(items)} items")
+                    print(f"   🎮 Games API returned {len(items)} items")
                 elif category == "music":
                     keyword = normalize(safe_get(prefs, "songType") or safe_get(prefs, "keyword") or safe_get(prefs, "query", ""))
+                    logger.info(f"Fetching music: keyword='{keyword}'")
+                    print(f"   🎵 Fetching music: keyword='{keyword}'")
                     items = suggest_music_with_links(keyword)
+                    logger.info(f"Music API returned {len(items)} items")
+                    print(f"   🎵 Music API returned {len(items)} items")
                 elif category == "food":
                     diet = normalize(safe_get(prefs, "diet", ""))
+                    logger.info(f"Fetching food: diet='{diet}'")
+                    print(f"   🍕 Fetching food: diet='{diet}'")
                     food_item = get_food_recommendation_with_url(diet)
                     items = [food_item] if food_item else []
+                    logger.info(f"Food API returned {len(items)} items")
+                    print(f"   🍕 Food API returned {len(items)} items")
                 else:
+                    logger.warning(f"Unknown category: {category}")
+                    print(f"   ⚠️ Unknown category: {category}")
                     items = []
             except Exception as e:
+                error_msg = traceback.format_exc()
+                logger.error(f"⚠️ Error fetching items for {category}: {str(e)}")
+                logger.error(error_msg)
                 print(f"⚠️ Error fetching items for {category}: {e}")
+                print(f"   Traceback: {error_msg[:200]}")
                 items = []
             
             # Transform to cards format
             cards = []
+            logger.info(f"Transforming {len(items)} items to cards")
+            print(f"   🔄 Transforming {len(items)} items to cards")
+            
             for it in (items or [])[:10]:
                 if isinstance(it, dict):
                     text = safe_get(it, "text", "")
@@ -216,13 +245,20 @@ def create_bot_routes(
                     elif category == "food":
                         action_label = "View Recipe"
                     
-                    cards.append(make_card(
+                    card = make_card(
                         title=title[:100] if title else "Unknown",
                         desc=desc[:200] if desc else category.title(),
                         img=str(image) if image else None,
                         label=action_label,
                         url=str(url) if url else None
-                    ))
+                    )
+                    cards.append(card)
+                    logger.info(f"Created card: {card.get('title', 'Unknown')[:50]}")
+                else:
+                    logger.warning(f"Skipping non-dict item: {type(it)}")
+            
+            logger.info(f"Created {len(cards)} cards from {len(items)} items")
+            print(f"   ✅ Created {len(cards)} cards from {len(items)} items")
             
             # Ensure cards array is never empty
             if not cards:
