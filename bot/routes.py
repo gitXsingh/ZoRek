@@ -81,16 +81,27 @@ def create_bot_routes(
         Input: {"category": "string", "prefs": {}}
         Output: {"cards": [{title, description, imageUrl, action: {label, url}}]}
         """
+        # Log incoming request
+        print("\n" + "="*60)
+        print("🔵 [REQUEST] POST /suggest_cards")
+        print(f"   Time: {datetime.datetime.utcnow().isoformat()}")
+        print(f"   Headers: {dict(request.headers)}")
+        print(f"   Remote: {request.remote_addr}")
+        
         try:
             # Validate and parse input
             if not request.is_json:
+                print("   ❌ ERROR: Not JSON")
                 return jsonify({"cards": [fallback_empty_card()]}), 400
             
             data = request.get_json(force=True)
             category = normalize(safe_get(data, "category", ""))
             prefs = safe_get(data, "prefs", {}) or {}
             
+            print(f"   📥 Input: category='{category}', prefs={prefs}")
+            
             if not category:
+                print("   ❌ ERROR: No category provided")
                 return jsonify({"cards": [fallback_empty_card()]}), 400
             
             # Get items based on category
@@ -166,6 +177,9 @@ def create_bot_routes(
             if not cards:
                 cards = [fallback_empty_card()]
             
+            print(f"   ✅ Output: {len(cards)} cards generated")
+            print("="*60 + "\n")
+            
             # Log (non-blocking)
             try:
                 if SHEET_BEST_URL:
@@ -181,6 +195,8 @@ def create_bot_routes(
             return jsonify({"cards": cards})
             
         except Exception as e:
+            print(f"   ❌ EXCEPTION: {str(e)}")
+            print("="*60 + "\n")
             print("❌ suggest_cards error:", traceback.format_exc())
             return jsonify({"cards": [fallback_empty_card()]}), 400
 
@@ -191,16 +207,27 @@ def create_bot_routes(
         Input: {"category": "string", "city": "string"}
         Output: {"cards": [{title, description, imageUrl, action: {label, url}}]}
         """
+        # Log incoming request
+        print("\n" + "="*60)
+        print("🟢 [REQUEST] POST /events_cards")
+        print(f"   Time: {datetime.datetime.utcnow().isoformat()}")
+        print(f"   Headers: {dict(request.headers)}")
+        print(f"   Remote: {request.remote_addr}")
+        
         try:
             # Validate and parse input
             if not request.is_json:
+                print("   ❌ ERROR: Not JSON")
                 return jsonify({"cards": [fallback_empty_card()]}), 400
             
             data = request.get_json(force=True)
             category = normalize(safe_get(data, "category", ""))
             city = normalize(safe_get(data, "city", "")) or "mumbai"  # Default fallback
             
+            print(f"   📥 Input: category='{category}', city='{city}'")
+            
             if not category:
+                print("   ❌ ERROR: No category provided")
                 return jsonify({"cards": [fallback_empty_card()]}), 400
             
             # Get events based on category
@@ -284,6 +311,9 @@ def create_bot_routes(
             if not cards:
                 cards = [fallback_empty_card()]
             
+            print(f"   ✅ Output: {len(cards)} cards generated")
+            print("="*60 + "\n")
+            
             # Log (non-blocking)
             try:
                 if SHEET_BEST_URL:
@@ -300,6 +330,8 @@ def create_bot_routes(
             return jsonify({"cards": cards})
             
         except Exception as e:
+            print(f"   ❌ EXCEPTION: {str(e)}")
+            print("="*60 + "\n")
             print("❌ events_cards error:", traceback.format_exc())
             return jsonify({"cards": [fallback_empty_card()]}), 400
 
@@ -310,9 +342,17 @@ def create_bot_routes(
         Input: {"mood": "string", "movieGenre": "string", "songType": "string", "diet": "string"}
         Output: {"cards": [...], "movie": {...}, "song": {...}, "food": {...}, "inputs": {...}}
         """
+        # Log incoming request
+        print("\n" + "="*60)
+        print("🟡 [REQUEST] POST /recommendations")
+        print(f"   Time: {datetime.datetime.utcnow().isoformat()}")
+        print(f"   Headers: {dict(request.headers)}")
+        print(f"   Remote: {request.remote_addr}")
+        
         try:
             # Validate and parse input
             if not request.is_json:
+                print("   ❌ ERROR: Not JSON")
                 return jsonify({
                     "cards": [fallback_empty_card()],
                     "movie": {"text": "", "url": None, "image": None, "poster": None},
@@ -326,6 +366,8 @@ def create_bot_routes(
             movie_genre = normalize(safe_get(data, "movieGenre", "random"))
             song_type = normalize(safe_get(data, "songType", ""))
             diet = normalize(safe_get(data, "diet", ""))
+            
+            print(f"   📥 Input: mood='{mood}', movieGenre='{movie_genre}', songType='{song_type}', diet='{diet}'")
             
             # Get recommendations
             movie = {}
@@ -419,6 +461,9 @@ def create_bot_routes(
             if not cards:
                 cards = [fallback_empty_card()]
             
+            print(f"   ✅ Output: {len(cards)} cards, movie={bool(movie_result.get('text'))}, song={bool(song_result.get('text'))}, food={bool(food.get('text'))}")
+            print("="*60 + "\n")
+            
             # Log (non-blocking)
             try:
                 if SHEET_BEST_URL:
@@ -447,6 +492,8 @@ def create_bot_routes(
             })
             
         except Exception as e:
+            print(f"   ❌ EXCEPTION: {str(e)}")
+            print("="*60 + "\n")
             print("❌ Recommendations error:", traceback.format_exc())
             return jsonify({
                 "cards": [fallback_empty_card()],

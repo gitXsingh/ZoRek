@@ -920,6 +920,9 @@ def internal_error(e):
 @app.route('/')
 def home():
     """Root endpoint - returns API information"""
+    # Log access to root endpoint
+    print(f"\n📋 [INFO] Root endpoint accessed from {request.remote_addr} at {datetime.datetime.utcnow().isoformat()}\n")
+    
     return jsonify({
         "service": "ZoRek - Zoho SalesIQ Script Bot API",
         "version": "2.0.0",
@@ -929,7 +932,8 @@ def home():
             "recommendations": "POST /recommendations",
             "health": "GET /health_check"
         },
-        "status": "Ready for Zoho SalesIQ Script Bot - Only 3 endpoints available"
+        "status": "Ready for Zoho SalesIQ Script Bot - Only 3 endpoints available",
+        "logging": "All requests are logged to console"
     })
 
 
