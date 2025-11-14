@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, redirect
 from flask_cors import CORS
 import requests
 import datetime
@@ -25,7 +25,9 @@ SEATGEEK_CLIENT_ID = os.environ.get("SEATGEEK_CLIENT_ID", "")
 TMDB_KEY = os.environ.get("TMDB_KEY", "")
 SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID", "")
 SPOTIFY_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
-SPOTIFY_REDIRECT_URI = os.environ.get("SPOTIFY_REDIRECT_URI", "https://zorek.onrender.com/oauth/spotify/callback")
+# Detect localhost vs production for Spotify OAuth
+_default_redirect = "http://localhost:5000/oauth/spotify/callback" if os.environ.get("FLASK_ENV") != "production" else "https://zorek.onrender.com/oauth/spotify/callback"
+SPOTIFY_REDIRECT_URI = os.environ.get("SPOTIFY_REDIRECT_URI", _default_redirect)
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 # ====================
 
@@ -649,161 +651,8 @@ def fallback_event_links(category: str, city: str) -> list[dict]:
     ]
 
 
-@app.route('/')
-def home():
-    return render_template("index.html")
-
-
-@app.route('/zorek', methods=['POST', 'HEAD'])
-def zorek():
-    """
-    Main webhook endpoint for Zoho SalesIQ integration.
-    Handles Movies, Books, and Food suggestions based on input data.
-    Supports both JSON and form-data requests.
-    """
-
-    # Zoho sends HEAD first to validate
-    if request.method == 'HEAD':
-        return '', 200
-
-    try:
-        # ====== Universal Input Handling ======
-        if request.is_json:
-            data = request.get_json(force=True)
-        else:
-            data = request.form.to_dict()
-
-        # Normalize input
-        choice = str(data.get("choice", "")).strip()
-        genre = str(data.get("genre", "random")).strip()
-        mood = str(data.get("mood", "")).strip()
-        name = str(data.get("name", "")).strip()
-        email = str(data.get("email", "")).strip()
-
-        suggestion = generate_suggestion(choice, genre, mood)
-
-        # ====== Log Everything (for analytics/debugging) ======
-        log = {
-            "Name": name,
-            "Email": email,
-            "Choice": choice,
-            "Genre": genre,
-            "Mood": mood,
-            "Suggestion": suggestion,
-            "Timestamp": str(datetime.datetime.now())
-        }
-
-        try:
-            requests.post(SHEET_BEST_URL, json=log, timeout=5)
-        except Exception as e:
-            print("⚠️ Logging failed:", e)
-
-        # ====== Final Response ======
-        return jsonify({"suggestion": suggestion, "status": "success"})
-
-    except Exception as e:
-        print("❌ Exception:", traceback.format_exc())
-        return jsonify({
-            "error": str(e),
-            "trace": traceback.format_exc(),
-            "status": "failed"
-        }), 500
-
-
-@app.route('/chat', methods=['POST'])
-def chat():
-    """
-    Rule-based chat endpoint that accepts a message and returns a recommendation.
-    Expected JSON: { "message": "...", "name": "...", "email": "..." }
-    """
-    try:
-        data = request.get_json(force=True)
-        message = str(data.get("message", "")).strip()
-        name = str(data.get("name", "")).strip()
-        email = str(data.get("email", "")).strip()
-
-        parsed = parse_user_message(message)
-        choice = parsed["choice"]
-        genre = parsed["genre"]
-        mood = parsed["mood"]
-
-        suggestion = generate_suggestion(choice, genre, mood)
-        reply = f"Here's a {choice} recommendation for {genre}:\n{suggestion}"
-
-        # Log to sheet
-        log = {
-            "Name": name or "ChatUser",
-            "Email": email,
-            "Choice": choice,
-            "Genre": genre,
-            "Mood": mood,
-            "Suggestion": suggestion,
-            "Timestamp": str(datetime.datetime.now())
-        }
-        try:
-            requests.post(SHEET_BEST_URL, json=log, timeout=5)
-        except Exception as e:
-            print("⚠️ Logging failed:", e)
-
-        return jsonify({"reply": reply, "choice": choice, "genre": genre})
-    except Exception as e:
-        print("❌ Chat exception:", traceback.format_exc())
-        return jsonify({"error": str(e)}), 400
-
-@app.route('/recommendations', methods=['POST'])
-def recommendations():
-    """
-    Accepts a combined preferences payload and returns recommendations for
-    movie, song, and food.
-    Expected JSON:
-    {
-      "mood": "happy",
-      "movieGenre": "action",
-      "songType": "pop",
-      "diet": "veg" | "non-veg"
-    }
-    """
-    try:
-        data = request.get_json(force=True) if request.is_json else request.form.to_dict()
-        mood = str(data.get("mood", "")).strip()
-        movie_genre = str(data.get("movieGenre", "random")).strip()
-        song_type = str(data.get("songType", "")).strip()
-        diet = str(data.get("diet", "")).strip()
-
-        # Derive suggestions with links
-        movie = get_movie_recommendation_with_url(movie_genre, mood)
-        song = get_song_recommendation_with_url(song_type, mood)
-        food = get_food_recommendation_with_url(diet)
-
-        # Optional: log to sheet as a single combined record
-        log = {
-            "Name": "WebChat",
-            "Email": "",
-            "Choice": f"Combined: movie={movie_genre}, song={song_type}, diet={diet}",
-            "Genre": movie_genre,
-            "Mood": mood,
-            "Suggestion": f"{movie.get('text')} | {song.get('text')} | {food.get('text')}",
-            "Timestamp": str(datetime.datetime.now())
-        }
-        try:
-            requests.post(SHEET_BEST_URL, json=log, timeout=5)
-        except Exception as e:
-            print("⚠️ Logging failed:", e)
-
-        return jsonify({
-            "movie": movie,
-            "song": song,
-            "food": food,
-            "inputs": {
-                "mood": mood,
-                "movieGenre": movie_genre,
-                "songType": song_type,
-                "diet": diet
-            }
-        })
-    except Exception as e:
-        print("❌ Recommendations exception:", traceback.format_exc())
-        return jsonify({"error": str(e)}), 400
+# Bot routes (/zorek, /chat, /suggest_cards, /events_cards, /recommendations, /widget_detail)
+# are now handled by bot module - registered below
 
 @app.route('/suggest', methods=['POST'])
 def suggest():
@@ -841,6 +690,20 @@ def suggest():
             results = [get_food_recommendation_with_url(diet)]
         else:
             return jsonify({"error": "Unknown category"}), 400
+
+        # Log to Google Sheets
+        try:
+            if SHEET_BEST_URL:
+                log = {
+                    "Endpoint": "suggest",
+                    "Category": category,
+                    "Preferences": str(prefs),
+                    "ResultsCount": len(results),
+                    "Timestamp": str(datetime.datetime.now())
+                }
+                requests.post(SHEET_BEST_URL, json=log, timeout=5)
+        except Exception as e:
+            print("⚠️ Logging failed:", e)
 
         return jsonify({"items": results})
     except Exception as e:
@@ -906,209 +769,92 @@ def events():
         else:
             return jsonify({"error": "Unknown event category"}), 400
 
+        # Log to Google Sheets
+        try:
+            if SHEET_BEST_URL:
+                log = {
+                    "Endpoint": "events",
+                    "Category": category,
+                    "City": city,
+                    "ResultsCount": len(results),
+            "Timestamp": str(datetime.datetime.now())
+                }
+                requests.post(SHEET_BEST_URL, json=log, timeout=5)
+        except Exception as e:
+            print("⚠️ Logging failed:", e)
+
         return jsonify({"items": results})
     except Exception as e:
         print("❌ Events exception:", traceback.format_exc())
         return jsonify({"error": str(e)}), 400
 
-@app.route('/suggest_cards', methods=['POST'])
-def suggest_cards():
-    """
-    Returns results as SalesIQ cards: [{title, imageUrl, description, action:{label,url}}]
-    Standardized format for Zoho SalesIQ plug integration.
-    """
-    try:
-        data = request.get_json(force=True)
-        category = str(data.get("category", "")).strip().lower()
-        prefs = data.get("prefs", {}) or {}
-        
-        # Get items from suggest logic
-        if category == "movies":
-            genre = prefs.get("genre", "")
-            min_imdb = float(prefs.get("minImdb", 0) or 0)
-            year = str(prefs.get("year", "")).strip()
-            items = search_movies_with_filters(genre, min_imdb, year)
-        elif category == "books":
-            subject = prefs.get("subject", "")
-            lang = prefs.get("lang", "")
-            items = suggest_books_with_links(subject, lang)
-        elif category == "games":
-            keyword = prefs.get("keyword", "")
-            items = suggest_games_with_links(keyword)
-        elif category == "music":
-            keyword = prefs.get("songType") or prefs.get("keyword") or prefs.get("query", "")
-            items = suggest_music_with_links(keyword)
-        elif category == "food":
-            diet = prefs.get("diet", "")
-            items = [get_food_recommendation_with_url(diet)]
-        else:
-            return jsonify({"error": "Unknown category"}), 400
-        
-        # Transform to SalesIQ card format
-        cards = []
-        for it in items[:10]:
-            if isinstance(it, dict):
-                text = it.get("text", "")
-                url = it.get("url")
-                image = it.get("image") or it.get("poster")
-                
-                # Extract title and description from text
-                # Format: "🎬 Title (Year) — ⭐ Rating" or "📚 Title — Author"
-                title = text
-                description = category.title()
-                
-                # For movies, extract rating info
-                if category == "movies" and "⭐" in text:
-                    parts = text.split("—")
-                    if len(parts) > 1:
-                        title = parts[0].strip()
-                        description = parts[1].strip()
-                
-                cards.append({
-                    "title": title.replace("🎬", "").replace("📚", "").replace("🎮", "").replace("🎵", "").replace("🍕", "").strip(),
-                    "imageUrl": image,
-                    "description": description,
-                    "action": {
-                        "label": "View" if url else "N/A",
-                        "url": url
-                    }
-                })
-        
-        return jsonify({"cards": cards})
-    except Exception as e:
-        print("❌ suggest_cards error:", traceback.format_exc())
-        return jsonify({"error": str(e)}), 400
-
-@app.route('/events_cards', methods=['POST'])
-def events_cards():
-    """
-    Returns events as SalesIQ cards: [{title, imageUrl, description, action:{label,url}}]
-    Standardized format for Zoho SalesIQ plug integration.
-    """
-    try:
-        data = request.get_json(force=True)
-        category = str(data.get("category", "")).strip().lower()
-        city = str(data.get("city", "")).strip()
-        results = []
-        
-        # Get events using same logic as /events
-        if category in ["concerts", "talkshow", "theater", "sports"]:
-            loc = geocode_city(city) if city else None
-            if not loc:
-                return jsonify({"error": "Could not determine location"}), 400
-            lat, lon = loc
-            if SEATGEEK_CLIENT_ID:
-                results = events_from_seatgeek(category, lat, lon)
-                if not results:
-                    results = fallback_event_links(category, city)
-            else:
-                results = fallback_event_links(category, city)
-        elif category in ["find events", "find"]:
-            loc = geocode_city(city) if city else None
-            if not loc:
-                return jsonify({"error": "Could not determine location"}), 400
-            lat, lon = loc
-            results = events_from_seatgeek("concerts", lat, lon)
-        elif category == "movies":
-            if TMDB_KEY:
-                try:
-                    data_resp = requests.get(f"https://api.themoviedb.org/3/movie/now_playing?api_key={TMDB_KEY}&language=en-US&page=1", timeout=10).json()
-                    for m in data_resp.get("results", [])[:10]:
-                        title = m.get("title")
-                        url = f"https://www.themoviedb.org/movie/{m.get('id')}"
-                        dt = m.get("release_date", "")
-                        results.append({"text": f"🎟️ {title} — {dt}", "url": url})
-                except Exception:
-                    results = []
-            else:
-                try:
-                    data_resp = requests.get("https://itunes.apple.com/search?term=movie&entity=movie&limit=10", timeout=10).json()
-                    for m in data_resp.get("results", []):
-                        results.append({"text": f"🎟️ {m.get('trackName','Movie')}", "url": m.get('trackViewUrl')})
-                except Exception:
-                    results = []
-        else:
-            return jsonify({"error": "Unknown event category"}), 400
-        
-        # Transform to SalesIQ card format
-        cards = []
-        for it in results[:10]:
-            if isinstance(it, dict):
-                text = it.get("text", "")
-                url = it.get("url")
-                
-                # Extract title and description
-                # Format: "📅 Title — Date @ Venue" or "🎟️ Title — Date"
-                title = text.replace("📅", "").replace("🎟️", "").strip()
-                description = category.title()
-                
-                # Try to extract date/venue info
-                if " — " in title:
-                    parts = title.split(" — ")
-                    title = parts[0].strip()
-                    if len(parts) > 1:
-                        description = parts[1].strip()
-                
-                cards.append({
-                    "title": title,
-                    "imageUrl": None,
-                    "description": description,
-                    "action": {
-                        "label": "Tickets" if url else "View",
-                        "url": url
-                    }
-                })
-        
-        return jsonify({"cards": cards})
-    except Exception as e:
-        print("❌ events_cards error:", traceback.format_exc())
-        return jsonify({"error": str(e)}), 400
+# Legacy functions removed - all handled by bot module (bot/routes.py)
 
 @app.route('/oauth/spotify/start')
 def spotify_start():
     """
     Redirect user to Spotify authorization page.
     """
-    if not SPOTIFY_CLIENT_ID or not SPOTIFY_REDIRECT_URI:
-        return "Spotify OAuth not configured", 400
-    scope = "user-read-email"
+    if not SPOTIFY_CLIENT_ID:
+        return jsonify({"error": "Spotify OAuth not configured"}), 400
+    
+    # Use request host to determine redirect URI for local development
+    redirect_uri = SPOTIFY_REDIRECT_URI
+    if request.host and ("localhost" in request.host or "127.0.0.1" in request.host):
+        redirect_uri = f"http://{request.host}/oauth/spotify/callback"
+    elif not redirect_uri:
+        redirect_uri = "http://localhost:5000/oauth/spotify/callback"
+    
+    scope = "user-read-email user-read-private"
     auth_url = (
         "https://accounts.spotify.com/authorize"
         f"?response_type=code&client_id={SPOTIFY_CLIENT_ID}"
-        f"&redirect_uri={requests.utils.quote(SPOTIFY_REDIRECT_URI, safe='')}"
+        f"&redirect_uri={requests.utils.quote(redirect_uri, safe='')}"
         f"&scope={requests.utils.quote(scope, safe='')}"
         f"&state=zo_rek_state"
     )
-    return jsonify({"auth_url": auth_url})
+    # Redirect directly to Spotify
+    return redirect(auth_url)
 
 @app.route('/oauth/spotify/callback')
 def spotify_callback():
     """
     Handle Spotify authorization callback; exchange code for access token.
     """
-    if not SPOTIFY_CLIENT_ID or not SPOTIFY_CLIENT_SECRET or not SPOTIFY_REDIRECT_URI:
+    if not SPOTIFY_CLIENT_ID or not SPOTIFY_CLIENT_SECRET:
         return "Spotify OAuth not configured", 400
+    
     code = request.args.get("code")
     if not code:
-        return "Missing code", 400
+        return "Missing authorization code", 400
+    
+    # Determine redirect URI (same logic as start endpoint)
+    redirect_uri = SPOTIFY_REDIRECT_URI
+    if request.host and ("localhost" in request.host or "127.0.0.1" in request.host):
+        redirect_uri = f"http://{request.host}/oauth/spotify/callback"
+    elif not redirect_uri:
+        redirect_uri = "http://localhost:5000/oauth/spotify/callback"
+    
     try:
         data = {
             "grant_type": "authorization_code",
             "code": code,
-            "redirect_uri": SPOTIFY_REDIRECT_URI,
+            "redirect_uri": redirect_uri,
             "client_id": SPOTIFY_CLIENT_ID,
             "client_secret": SPOTIFY_CLIENT_SECRET
         }
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         r = requests.post("https://accounts.spotify.com/api/token", data=data, headers=headers, timeout=10)
+        r.raise_for_status()
         tok = r.json()
         if "access_token" in tok:
-            set_spotify_token(tok["access_token"], tok.get("expires_in", 3600))
-            return "Spotify connected. You can close this window."
-        return jsonify(tok), 400
+            set_spotify_token(tok["access_token"], tok.get("expires_in", 3600), token_kind="user")
+            # Redirect back to app with success message
+            return redirect("/?spotify=connected")
+        return jsonify({"error": "Failed to get access token", "response": tok}), 400
     except Exception as e:
         print("❌ Spotify callback error:", traceback.format_exc())
-        return jsonify({"error": str(e)}), 400
+        return f"Error: {str(e)}. <a href='/'>Return to app</a>", 400
 
 @app.route('/oauth/spotify/status')
 def spotify_status():
@@ -1172,31 +918,43 @@ def ai_commentary():
         print("❌ AI commentary error:", traceback.format_exc())
         return jsonify({"error": str(e)}), 400
 
-@app.route('/widget_detail', methods=['GET'])
-def widget_detail():
-    """
-    SalesIQ Operator Widget endpoint.
-    Returns visitor data in Zoho widget_detail format.
-    Query params: email (optional, defaults to unknown@example.com)
-    """
-    try:
-        email = request.args.get("email", "unknown@example.com")
-        
-        # In a real implementation, you'd fetch this from your database/Sheet
-        # For now, return mock data structure matching Zoho widget_detail format
-        visitor_data = {
-            "email": email,
-            "lastChoice": "Movies",
-            "lastGenre": "Action",
-            "lastSuggestion": "Inception (2010)",
-            "timestamp": datetime.datetime.utcnow().isoformat(),
-            "interactionCount": 1
-        }
-        
-        return jsonify(visitor_data)
-    except Exception as e:
-        print("❌ Widget detail error:", traceback.format_exc())
-        return jsonify({"error": str(e)}), 400
+# ====== Register Zoho SalesIQ Bot Routes ======
+# Import and register all bot endpoints
+from bot.routes import create_bot_routes
+from bot.widgets import create_widget_routes
+from bot.handlers import log_to_sheet as bot_log_to_sheet, format_salesiq_card, format_event_card
+
+# Register all Zoho SalesIQ bot routes with required dependencies
+create_bot_routes(
+    app,
+    # API functions
+    generate_suggestion=generate_suggestion,
+    search_movies_with_filters=search_movies_with_filters,
+    suggest_books_with_links=suggest_books_with_links,
+    suggest_games_with_links=suggest_games_with_links,
+    suggest_music_with_links=suggest_music_with_links,
+    get_food_recommendation_with_url=get_food_recommendation_with_url,
+    get_movie_recommendation_with_url=get_movie_recommendation_with_url,
+    get_song_recommendation_with_url=get_song_recommendation_with_url,
+    events_from_seatgeek=events_from_seatgeek,
+    fallback_event_links=fallback_event_links,
+    geocode_city=geocode_city,
+    # Configuration
+    SHEET_BEST_URL=SHEET_BEST_URL,
+    TMDB_KEY=TMDB_KEY,
+    SEATGEEK_CLIENT_ID=SEATGEEK_CLIENT_ID,
+    # Handler functions
+    parse_user_message=parse_user_message,
+    log_to_sheet_func=bot_log_to_sheet,
+    format_salesiq_card=format_salesiq_card,
+    format_event_card=format_event_card
+)
+
+# Register widget routes for operator panel
+create_widget_routes(
+    app,
+    spotify_token_valid_func=spotify_token_valid
+)
 
 @app.route('/health_check', methods=['GET'])
 def health_check():
@@ -1292,6 +1050,27 @@ def not_found(e):
 @app.errorhandler(500)
 def internal_error(e):
     return jsonify({"error": "Internal server error", "status": 500}), 500
+
+
+# ====== Root Endpoint ======
+# For Zoho SalesIQ bot integration only - no web interface served here
+@app.route('/')
+def home():
+    """Root endpoint - returns API information"""
+    return jsonify({
+        "service": "ZoRek - Zoho SalesIQ Bot API",
+        "version": "1.0.0",
+        "endpoints": {
+            "main_webhook": "POST /zorek",
+            "plug_1_suggest": "POST /suggest_cards",
+            "plug_2_events": "POST /events_cards",
+            "plug_3_recommendations": "POST /recommendations",
+            "chat": "POST /chat",
+            "widget": "GET /widget_detail",
+            "health": "GET /health_check"
+        },
+        "documentation": "See ZoRek_SalesIQ_Integration_Guide.md for setup instructions"
+    })
 
 
 if __name__ == '__main__':

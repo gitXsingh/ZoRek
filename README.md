@@ -1,6 +1,8 @@
-# ZoRek - Smart Entertainment Bot
+# ZoRek – Entertainment Bot 🎬🎵🍕
 
-ZoRek is an AI-powered entertainment chatbot built for the **Zoho SalesIQ platform**. It provides personalized movie, book, game, food, and music recommendations to users through an interactive web chat interface.
+ZoRek is an AI-powered entertainment chatbot built for the **Zoho SalesIQ platform**. It combines a Flask backend with a React frontend, providing personalized movie, book, game, food, and music recommendations through an interactive web chat interface.
+
+**Live Demo**: https://zorek.onrender.com
 
 ## 🎯 Features
 
@@ -16,6 +18,7 @@ ZoRek is an AI-powered entertainment chatbot built for the **Zoho SalesIQ platfo
 ### Prerequisites
 
 - Python 3.8 or higher
+- Node.js 18+ and npm
 - API keys for:
   - OMDb (required)
   - TMDB (required)
@@ -33,23 +36,40 @@ ZoRek is an AI-powered entertainment chatbot built for the **Zoho SalesIQ platfo
    cd ZoRek
    ```
 
-2. **Install dependencies**
+2. **Install Python dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Set up environment variables**
+3. **Install Node.js dependencies**
+   ```bash
+   npm install
+   ```
+
+4. **Build React frontend**
+   ```bash
+   npm run build
+   ```
+
+5. **Set up environment variables**
    ```bash
    cp env.example .env
    # Edit .env and add your API keys
    ```
 
-4. **Run the application**
+6. **Run the application**
    ```bash
+   # Development mode (Flask + Vite dev server)
+   python app.py  # Terminal 1
+   npm run dev    # Terminal 2
+   
+   # Production mode (Flask serves React build)
    python app.py
+   # or with gunicorn:
+   gunicorn app:app
    ```
 
-5. **Access the application**
+7. **Access the application**
    - Local: http://localhost:5000
    - Live: https://zorek.onrender.com
 
@@ -339,18 +359,62 @@ Get AI-generated commentary (requires OpenAI API key).
 
 ## 🚢 Deployment
 
-### Deploy to Render
+### Deploy to Render (Single Service)
+
+ZoRek is designed to deploy as a **single Render service** that serves both Flask backend and React frontend.
 
 1. **Create a new Web Service** on Render
 2. **Connect your GitHub repository**
-3. **Set environment variables** in Render dashboard
-4. **Set build command**: `pip install -r requirements.txt`
-5. **Set start command**: `python app.py`
+3. **Set environment variables** in Render dashboard (see below)
+4. **Set build command**:
+   ```bash
+   pip install -r requirements.txt && npm install && npm run build
+   ```
+5. **Set start command**:
+   ```bash
+   gunicorn app:app
+   ```
 6. **Deploy**
+
+The Flask app will serve the React build from `static/build/` directory, and all API endpoints will be available on the same domain.
 
 ### Environment Variables on Render
 
-Add all environment variables from `.env` in the Render dashboard under "Environment".
+Add all environment variables from `.env` in the Render dashboard under "Environment":
+
+```
+OMDB_KEY=your_omdb_key_here
+TMDB_KEY=your_tmdb_key_here
+SPOONACULAR_KEY=your_spoonacular_key_here
+SHEET_BEST_URL=https://api.sheetbest.com/sheets/your_sheet_id_here
+SPOTIFY_CLIENT_ID=your_spotify_client_id_here
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
+SPOTIFY_REDIRECT_URI=https://zorek.onrender.com/oauth/spotify/callback
+SEATGEEK_CLIENT_ID=your_seatgeek_client_id_here
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+### Project Structure
+
+```
+ZoRek/
+├── app.py                    # Flask backend
+├── requirements.txt          # Python dependencies
+├── package.json              # Node.js dependencies
+├── vite.config.js           # Vite configuration
+├── tailwind.config.js       # Tailwind CSS configuration
+├── templates/
+│   └── index.html           # Fallback HTML template
+├── static/
+│   └── build/               # React build output (generated)
+├── src/
+│   ├── App.jsx              # Main React chat UI
+│   ├── config.js            # API configuration
+│   ├── index.js             # React entry point
+│   └── styles.css           # Tailwind CSS styles
+├── .env (ignored)           # Environment variables
+└── README.md
+```
 
 ## 📊 Testing
 
