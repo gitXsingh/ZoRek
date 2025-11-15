@@ -425,13 +425,16 @@ def create_bot_routes(
             
             # Transform to cards format
             cards = []
+            logger.info(f"Transforming {len(results)} event results to cards")
+            print(f"   🔄 Transforming {len(results)} event results to cards")
+            
             for it in (results or [])[:10]:
                 if isinstance(it, dict):
                     text = safe_get(it, "text", "")
                     url = safe_get(it, "url")
                     image = safe_get(it, "image") or safe_get(it, "poster")
                     
-                    title = text.replace("🎟️", "").strip()
+                    title = text.replace("🎟️", "").replace("🔎", "").strip()
                     if "—" in title:
                         title = title.split("—")[0].strip()
                     
@@ -441,13 +444,16 @@ def create_bot_routes(
                     elif category == "concerts":
                         desc = f"Concert in {city.title()}"
                     
-                    cards.append(make_card(
+                    card = make_card(
                         title=title[:100] if title else "Event",
                         desc=desc,
                         img=str(image) if image else None,
                         label="Book Tickets",
                         url=str(url) if url else None
-                    ))
+                    )
+                    cards.append(card)
+                    logger.info(f"Created event card: title='{card.get('title', '')[:50]}', url={bool(card.get('action', {}).get('url'))}")
+                    print(f"   ✅ Card: {card.get('title', '')[:50]} - URL: {bool(card.get('action', {}).get('url'))}")
             
             # Ensure cards array is never empty
             if not cards:
@@ -455,6 +461,12 @@ def create_bot_routes(
             
             logger.info(f"✅ Output: {len(cards)} cards generated")
             print(f"   ✅ Output: {len(cards)} cards generated")
+            
+            # Log the actual response being sent
+            response_data = {"cards": cards}
+            logger.info(f"Response JSON (first 500 chars): {str(response_data)[:500]}")
+            print(f"   📤 Sending response with {len(cards)} cards")
+            
             print("="*60 + "\n")
             logger.info("="*60)
             
@@ -471,7 +483,7 @@ def create_bot_routes(
             except Exception:
                 pass  # Non-blocking
             
-            return jsonify({"cards": cards})
+            return jsonify(response_data)
             
         except Exception as e:
             error_msg = traceback.format_exc()
