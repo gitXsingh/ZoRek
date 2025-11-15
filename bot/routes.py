@@ -164,9 +164,30 @@ def create_bot_routes(
                     year = normalize(safe_get(prefs, "year", ""))
                     logger.info(f"Fetching movies: genre='{genre}', min_imdb={min_imdb}, year='{year}'")
                     print(f"   🎬 Fetching movies: genre='{genre}', min_imdb={min_imdb}, year='{year}'")
+                    
+                    # If no genre specified, use "popular" to get trending movies
+                    if not genre:
+                        genre = "popular"
+                        logger.info("No genre specified, using 'popular' to fetch trending movies")
+                        print(f"   🎬 No genre specified, using 'popular' for trending movies")
+                    
                     items = search_movies_with_filters(genre, min_imdb, year)
                     logger.info(f"Movies API returned {len(items)} items")
                     print(f"   🎬 Movies API returned {len(items)} items")
+                    
+                    # Filter out error messages from results
+                    items = [it for it in items if it.get("text") and "No movies matched" not in it.get("text", "") and "error" not in it.get("text", "").lower()]
+                    logger.info(f"After filtering errors: {len(items)} valid items")
+                    print(f"   🎬 After filtering errors: {len(items)} valid items")
+                    
+                    # If still no items, try with a generic search
+                    if not items:
+                        logger.info("No items after filtering, trying generic 'movie' search")
+                        print(f"   🎬 No valid items, trying generic search...")
+                        items = search_movies_with_filters("movie", 0.0, "")
+                        items = [it for it in items if it.get("text") and "No movies matched" not in it.get("text", "") and "error" not in it.get("text", "").lower()]
+                        logger.info(f"Generic search returned {len(items)} items")
+                        print(f"   🎬 Generic search returned {len(items)} items")
                 elif category == "books":
                     subject = normalize(safe_get(prefs, "subject", ""))
                     lang = normalize(safe_get(prefs, "lang", ""))
