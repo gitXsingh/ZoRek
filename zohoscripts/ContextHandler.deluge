@@ -31,7 +31,6 @@ if(context_id.equals("suggest_context"))
 
 	payload = Map();
 	payload.put("category",category);
-	payload.put("prefs",Map());
 	apiResult = Map();
 	apiSuccess = true;
 
