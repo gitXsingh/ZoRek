@@ -503,6 +503,37 @@ def get_food_recommendation_with_url(diet: str = "") -> dict:
     except Exception as exc:
         return {"text": f"⚠️ Food API error: {str(exc)}", "url": None, "image": None}
 
+def fetch_trending_movies(limit: int = 10) -> list[dict]:
+    """
+    Fetch trending movies from TMDB as a fallback when filtered searches fail.
+    """
+    if not TMDB_KEY:
+        return []
+    try:
+        resp = requests.get(
+            f"https://api.themoviedb.org/3/trending/movie/week?api_key={TMDB_KEY}&language=en-US",
+            timeout=8
+        )
+        data = resp.json()
+        results = []
+        for movie in (data.get("results") or [])[:limit]:
+            title = movie.get("title") or movie.get("name") or "Movie"
+            release_year = (movie.get("release_date") or "")[:4]
+            vote_average = movie.get("vote_average", "N/A")
+            tmdb_id = movie.get("id")
+            poster_path = movie.get("poster_path")
+            poster = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
+            results.append({
+                "text": f"🎬 {title} ({release_year or 'N/A'}) — ⭐ {vote_average}",
+                "url": f"https://www.themoviedb.org/movie/{tmdb_id}" if tmdb_id else None,
+                "poster": poster,
+                "image": poster
+            })
+        return results
+    except Exception:
+        return []
+
+
 def search_movies_with_filters(genre: str = "", min_imdb: float = 0.0, year: str = "") -> list[dict]:
     """
     Use OMDb to search movies by keyword (genre text), optionally filter by year and imdb rating.
@@ -551,8 +582,16 @@ def search_movies_with_filters(genre: str = "", min_imdb: float = 0.0, year: str
                     "imdbRating": d.get("imdbRating","N/A"),
                     "year": d.get("Year","N/A")
                 })
-        return results or [{"text": "No movies matched your filters.", "url": None}]
+        if results:
+            return results
+        fallback_results = fetch_trending_movies()
+        if fallback_results:
+            return fallback_results
+        return [{"text": "No movies matched your filters.", "url": None}]
     except Exception as exc:
+        fallback_results = fetch_trending_movies()
+        if fallback_results:
+            return fallback_results
         return [{"text": f"⚠️ Movie search error: {str(exc)}", "url": None}]
 
 def suggest_books_with_links(subject: str = "", lang: str = "") -> list[dict]:

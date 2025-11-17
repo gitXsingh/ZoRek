@@ -1,0 +1,97 @@
+response = Map();
+msg = "";
+
+if(message != null && message.containsKey("text"))
+{
+	msg = message.get("text").toString().trim();
+}
+
+mainOptions = Collection();
+mainOptions.insert("Suggest Something");
+mainOptions.insert("Book an Event");
+mainOptions.insert("My Pick Combo");
+mainOptions.insert("Connect with human");
+
+// Handle primary commands
+if(msg.equalsIgnoreCase("Suggest Something"))
+{
+	response.put("action","context");
+	response.put("context_id","suggest_context");
+	questions = Collection();
+	q = Map();
+	q.put("name","category");
+	q.put("replies",{"Choose a category to get curated picks."});
+	q.put("suggestions",{"Movies","Books","Games","Food","Music"});
+	questions.insert(q);
+	response.put("questions",questions);
+	return response;
+}
+else if(msg.equalsIgnoreCase("Book an Event"))
+{
+	response.put("action","context");
+	response.put("context_id","event_context");
+	questions = Collection();
+	q1 = Map();
+	q1.put("name","event_type");
+	q1.put("replies",{"Which event are you interested in?"});
+	q1.put("suggestions",{"Movies","Talkshow","Concerts","Find Events"});
+	q2 = Map();
+	q2.put("name","city");
+	q2.put("replies",{"Which city should I search in? (e.g., Mumbai, Delhi)"});
+	questions.insert(q1);
+	questions.insert(q2);
+	response.put("questions",questions);
+	return response;
+}
+else if(msg.equalsIgnoreCase("My Pick Combo"))
+{
+	response.put("action","context");
+	response.put("context_id","combo_context");
+	questions = Collection();
+
+	qMood = Map();
+	qMood.put("name","mood");
+	qMood.put("replies",{"What's your mood right now?"});
+	qMood.put("suggestions",{"Happy","Calm","Romantic","Energetic","Mystery"});
+
+	qMovie = Map();
+	qMovie.put("name","movieGenre");
+	qMovie.put("replies",{"Preferred movie genre? (e.g., Action, Drama)"});
+
+	qSong = Map();
+	qSong.put("name","songType");
+	qSong.put("replies",{"Preferred song style? (e.g., Pop, Rock)"});
+
+	qDiet = Map();
+	qDiet.put("name","diet");
+	qDiet.put("replies",{"Diet preference?"});
+	qDiet.put("suggestions",{"Veg","Non-Veg","Vegan"});
+
+	questions.insert(qMood);
+	questions.insert(qMovie);
+	questions.insert(qSong);
+	questions.insert(qDiet);
+
+	response.put("questions",questions);
+	return response;
+}
+else if(msg.equalsIgnoreCase("Connect with human"))
+{
+	response.put("action","forward");
+	response.put("replies",{"Connecting you to an operator..."});
+	response.put("department","Sales");
+	return response;
+}
+else if(msg.equalsIgnoreCase("End chat"))
+{
+	response.put("action","end");
+	response.put("replies",{"Thanks for chatting with ZoRek. See you soon!"});
+	return response;
+}
+
+// Default message if no known command
+response.put("action","reply");
+response.put("replies",{"Please choose an option to continue."});
+response.put("suggestions",mainOptions);
+return response;
+
