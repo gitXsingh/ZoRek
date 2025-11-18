@@ -60,6 +60,89 @@ def fallback_empty_card() -> dict:
     )
 
 
+FALLBACK_SUGGESTIONS = {
+    "movies": [
+        {"title": "Inception (2010)", "desc": "Sci-Fi · IMDb 8.8", "img": "https://image.tmdb.org/t/p/w500/qmDpIHrmpJINaRKAfWQfftjCdyi.jpg", "label": "Watch Now", "url": "https://www.imdb.com/title/tt1375666/"},
+        {"title": "The Dark Knight (2008)", "desc": "Action · IMDb 9.0", "img": "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg", "label": "Watch Now", "url": "https://www.imdb.com/title/tt0468569/"},
+        {"title": "Interstellar (2014)", "desc": "Adventure · IMDb 8.7", "img": "https://image.tmdb.org/t/p/w500/rAiYTfKGqDCRIIqo664sY9XZIvQ.jpg", "label": "Watch Now", "url": "https://www.imdb.com/title/tt0816692/"}
+    ],
+    "books": [
+        {"title": "Atomic Habits", "desc": "James Clear · Productivity", "img": "https://images-na.ssl-images-amazon.com/images/I/81bGKUa1e0L.jpg", "label": "Read More", "url": "https://www.goodreads.com/book/show/40121378-atomic-habits"},
+        {"title": "Project Hail Mary", "desc": "Andy Weir · Sci-Fi", "img": "https://images-na.ssl-images-amazon.com/images/I/91xPRev9DwL.jpg", "label": "Read More", "url": "https://www.goodreads.com/book/show/54493401-project-hail-mary"},
+        {"title": "The Midnight Library", "desc": "Matt Haig · Fiction", "img": "https://images-na.ssl-images-amazon.com/images/I/81Bf46mx63L.jpg", "label": "Read More", "url": "https://www.goodreads.com/book/show/52578297-the-midnight-library"}
+    ],
+    "games": [
+        {"title": "The Witcher 3: Wild Hunt", "desc": "RPG · PC / Console", "img": "https://cdn.cloudflare.steamstatic.com/steam/apps/292030/header.jpg?t=1668104445", "label": "View Game", "url": "https://store.steampowered.com/app/292030/The_Witcher_3_Wild_Hunt/"},
+        {"title": "Hades", "desc": "Action Roguelike · PC / Switch", "img": "https://cdn.cloudflare.steamstatic.com/steam/apps/1145360/header.jpg", "label": "View Game", "url": "https://store.steampowered.com/app/1145360/Hades/"},
+        {"title": "Forza Horizon 5", "desc": "Racing · Xbox / PC", "img": "https://cdn.cloudflare.steamstatic.com/steam/apps/1551360/header.jpg", "label": "View Game", "url": "https://store.steampowered.com/app/1551360/Forza_Horizon_5/"}
+    ],
+    "music": [
+        {"title": "As It Was – Harry Styles", "desc": "Pop · 2022", "img": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/2a/19/fb/2a19fb85-2f70-9e44-f2a9-82abe679b88e/886449990061.jpg/100x100bb.jpg", "label": "Listen", "url": "https://open.spotify.com/track/4LRPiXqCikLlN15c3yImP7"},
+        {"title": "Blinding Lights – The Weeknd", "desc": "Pop · 2020", "img": "https://i.scdn.co/image/ab67616d0000b2734c2fd0f5b4c5f1318c3aaf36", "label": "Listen", "url": "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b"},
+        {"title": "Levitating – Dua Lipa", "desc": "Pop · 2020", "img": "https://is4-ssl.mzstatic.com/image/thumb/Music115/v4/00/21/3d/00213d3b-2ddd-b4db-0fd2-2ed07e675985/190295186869.jpg/100x100bb.jpg", "label": "Listen", "url": "https://open.spotify.com/track/463CkQjx2Zk1yXoBuierM9"}
+    ],
+    "food": [
+        {"title": "Mediterranean Buddha Bowl", "desc": "Veg · 30 min meal", "img": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80", "label": "View Recipe", "url": "https://www.loveandlemons.com/buddha-bowl/"},
+        {"title": "Spicy Ramen Upgrade", "desc": "Comfort · Quick fix", "img": "https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?auto=format&fit=crop&w=600&q=80", "label": "View Recipe", "url": "https://www.bonappetit.com/recipe/spicy-miso-ramen"},
+        {"title": "Berry Yogurt Parfait", "desc": "Breakfast · Fresh", "img": "https://images.unsplash.com/photo-1470337458703-46ad1756a187?auto=format&fit=crop&w=600&q=80", "label": "View Recipe", "url": "https://www.foodnetwork.com/recipes/berry-parfait-recipe"}
+    ]
+}
+
+
+FALLBACK_MOVIE_RECO = {
+    "text": "🎬 Inception — Mind-bending sci-fi classic",
+    "url": "https://www.imdb.com/title/tt1375666/",
+    "image": "https://image.tmdb.org/t/p/w500/qmDpIHrmpJINaRKAfWQfftjCdyi.jpg",
+    "poster": "https://image.tmdb.org/t/p/w500/qmDpIHrmpJINaRKAfWQfftjCdyi.jpg"
+}
+
+FALLBACK_SONG_RECO = {
+    "text": "🎵 Blinding Lights — The Weeknd",
+    "url": "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b",
+    "image": "https://i.scdn.co/image/ab67616d0000b2734c2fd0f5b4c5f1318c3aaf36",
+    "source": "Spotify"
+}
+
+FALLBACK_FOOD_RECO = {
+    "text": "🍕 Veggie Burrito Bowl — Fresh & filling",
+    "url": "https://www.loveandlemons.com/vegetarian-burrito-bowl/",
+    "image": "https://images.unsplash.com/photo-1478145046317-39f10e56b5e9?auto=format&fit=crop&w=600&q=80"
+}
+
+
+def category_fallback_cards(category: str) -> List[dict]:
+    entries = FALLBACK_SUGGESTIONS.get(category.lower())
+    if not entries:
+        return [fallback_empty_card()]
+    return [make_card(**entry) for entry in entries]
+
+
+def fallback_movie_recommendation() -> dict:
+    return {
+        "text": FALLBACK_MOVIE_RECO["text"],
+        "url": FALLBACK_MOVIE_RECO["url"],
+        "image": FALLBACK_MOVIE_RECO["image"],
+        "poster": FALLBACK_MOVIE_RECO["poster"]
+    }
+
+
+def fallback_song_recommendation() -> dict:
+    return {
+        "text": FALLBACK_SONG_RECO["text"],
+        "url": FALLBACK_SONG_RECO["url"],
+        "image": FALLBACK_SONG_RECO["image"],
+        "source": FALLBACK_SONG_RECO["source"]
+    }
+
+
+def fallback_food_recommendation() -> dict:
+    return {
+        "text": FALLBACK_FOOD_RECO["text"],
+        "url": FALLBACK_FOOD_RECO["url"],
+        "image": FALLBACK_FOOD_RECO["image"]
+    }
+
+
 # ====== MAIN ENDPOINT REGISTRATION ======
 
 def create_bot_routes(
@@ -283,7 +366,7 @@ def create_bot_routes(
             
             # Ensure cards array is never empty
             if not cards:
-                cards = [fallback_empty_card()]
+                cards = category_fallback_cards(category)
             
             logger.info(f"✅ Output: {len(cards)} cards generated")
             print(f"   ✅ Output: {len(cards)} cards generated")
@@ -579,6 +662,9 @@ def create_bot_routes(
                 "image": str(safe_get(movie, "image")) if safe_get(movie, "image") else None,
                 "poster": str(safe_get(movie, "poster")) if safe_get(movie, "poster") else None
             }
+
+            if not movie_result["text"].strip():
+                movie_result = fallback_movie_recommendation()
             
             # Determine song source
             song_source = "Spotify"
@@ -595,12 +681,18 @@ def create_bot_routes(
                 "image": str(safe_get(song, "image")) if safe_get(song, "image") else None,
                 "source": str(safe_get(song, "source", song_source))
             }
+
+            if not song_result["text"].strip():
+                song_result = fallback_song_recommendation()
             
             food = {
                 "text": str(safe_get(food, "text", "")),
                 "url": str(safe_get(food, "url")) if safe_get(food, "url") else None,
                 "image": str(safe_get(food, "image")) if safe_get(food, "image") else None
             }
+
+            if not food["text"].strip():
+                food = fallback_food_recommendation()
             
             # Create cards from recommendations
             cards = []
