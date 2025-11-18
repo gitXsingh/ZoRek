@@ -1,0 +1,45 @@
+// Failure Handler
+response = Map();
+
+// If the failed response was a forward action, handle standard error codes
+if(failed_response != null && failed_response.containsKey("action") && failed_response.get("action").toString().equalsIgnoreCase("forward"))
+{
+	code = 0;
+	if(cause != null && cause.containsKey("code"))
+	{
+		// Zoho passes numeric code inside cause.code
+		try 
+		{
+			code = cause.get("code").toNumber();
+		}
+		catch (e)
+		{
+			code = 0;
+		}
+	}
+
+	if(code == 1001)
+	{
+		response.put("action","reply");
+		response.put("replies",{"It seems this is outside our working hours.","Please leave a message and we will get back to you."});
+		return response;
+	}
+	else if(code == 1002)
+	{
+		response.put("action","reply");
+		response.put("replies",{"All our agents are busy at the moment.","Please leave a message and we will get back to you."});
+		return response;
+	}
+	else if(code == 1003)
+	{
+		response.put("action","reply");
+		response.put("replies",{"Operator is unavailable.","Please try again later."});
+		return response;
+	}
+}
+
+// Generic fallback reply
+response.put("action","reply");
+response.put("replies",{"Sorry, something went wrong. Please try again later."});
+return response;
+

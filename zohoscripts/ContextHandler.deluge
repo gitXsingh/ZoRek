@@ -4,203 +4,361 @@ info answers;
 // ---------------- Suggest Something ----------------
 if(context_id.equals("suggest_context"))
 {
-	category = "";
-	if(answers != null && answers.containsKey("category"))
-	{
-		categoryAnswer = answers.get("category");
-		if(categoryAnswer != null)
-		{
-			try
-			{
-				category = categoryAnswer.get("text").toString();
-			}
-			catch(catErr)
-			{
-				category = categoryAnswer.toString();
-			}
-		}
-	}
-
-	if(category == "" || category == null)
-	{
-		response.put("action","reply");
-		response.put("replies",{"Please choose a category to continue."});
-		response.put("suggestions",{"Movies","Books","Games","Food","Music"});
-		return response;
-	}
-
-	payload = Map();
-	payload.put("category",category);
-	apiResult = Map();
-	apiSuccess = true;
-
 	try
 	{
-		apiResult = invokeurl
-		[
-			url : "https://zorek.onrender.com/suggest_cards"
-			type : POST
-			parameters : payload
-		];
-	}
-	catch(apiErrSuggest)
-	{
-		apiSuccess = false;
-	}
+		info "🟦 suggest_context answers " + answers;
+		category = "";
+		if(answers != null && answers.containsKey("category"))
+		{
+			categoryAnswer = answers.get("category");
+			if(categoryAnswer != null)
+			{
+				try
+				{
+					category = categoryAnswer.get("text").toString();
+				}
+				catch(catErr)
+				{
+					category = categoryAnswer.toString();
+				}
+			}
+		}
 
-	if(apiSuccess == false || apiResult == null || apiResult.isEmpty())
-	{
+		info "🟦 suggest_context category " + category;
+
+		if(category == "" || category == null)
+		{
+			response.put("action","reply");
+			response.put("replies",{"Please choose a category to continue."});
+			response.put("suggestions",{"Movies","Books","Games","Food","Music"});
+			return response;
+		}
+
+		payload = Map();
+		payload.put("category",category);
+		apiResult = Map();
+		apiSuccess = true;
+
+		try
+		{
+			apiResult = invokeurl
+			[
+				url : "https://zorek.onrender.com/suggest_cards"
+				type : POST
+				parameters : payload
+			];
+			info "🟦 suggest_context API result " + apiResult;
+		}
+		catch(apiErrSuggest)
+		{
+			apiSuccess = false;
+			info "🟥 suggest_context invoke error " + apiErrSuggest;
+		}
+
+		if(apiSuccess == false || apiResult == null || apiResult.isEmpty())
+		{
+			response.put("action","reply");
+			response.put("replies",{"Unable to fetch " + category + " suggestions right now. Please try again."});
+			response.put("suggestions",{"Movies","Books","Games","Food","Music"});
+			return response;
+		}
+
+		cardCollection = Collection();
+		if(apiResult.containsKey("cards"))
+		{
+			cardsList = apiResult.get("cards");
+			if(cardsList != null)
+			{
+				for each  rawCard in cardsList
+				{
+					try
+					{
+						cardMap = Map();
+						if(rawCard.containsKey("title"))
+						{
+							cardMap.put("title",rawCard.get("title").toString());
+						}
+						else
+						{
+							cardMap.put("title","");
+						}
+						if(rawCard.containsKey("description"))
+						{
+							cardMap.put("description",rawCard.get("description").toString());
+						}
+						else
+						{
+							cardMap.put("description","");
+						}
+						if(rawCard.containsKey("imageUrl") && rawCard.get("imageUrl") != null)
+						{
+							imageVal = rawCard.get("imageUrl").toString();
+							if(imageVal != "" && imageVal != null)
+							{
+								cardMap.put("imageUrl",imageVal);
+							}
+						}
+						actionMap = Map();
+						if(rawCard.containsKey("action") && rawCard.get("action") != null)
+						{
+							actionData = rawCard.get("action");
+							if(actionData != null)
+							{
+								if(actionData.containsKey("label"))
+								{
+									actionMap.put("label",actionData.get("label").toString());
+								}
+								else
+								{
+									actionMap.put("label","View");
+								}
+								if(actionData.containsKey("url"))
+								{
+									actionMap.put("url",actionData.get("url").toString());
+								}
+								else
+								{
+									actionMap.put("url","");
+								}
+							}
+							else
+							{
+								actionMap.put("label","View");
+								actionMap.put("url","");
+							}
+						}
+						else
+						{
+							actionMap.put("label","View");
+							actionMap.put("url","");
+						}
+						cardMap.put("action",actionMap);
+						cardCollection.insert(cardMap);
+					}
+					catch(cardErr)
+					{
+						info "🟥 suggest_context card error " + cardErr;
+					}
+				}
+			}
+		}
+
+		info "🟦 suggest_context cards count " + cardCollection.size();
+
+		if(cardCollection.size() > 0)
+		{
+			response.put("action","reply");
+			response.put("cards",cardCollection);
+			response.put("suggestions",{"Suggest Something","Book an Event","My Pick Combo","Connect with human"});
+			return response;
+		}
+
 		response.put("action","reply");
-		response.put("replies",{"Unable to fetch " + category + " suggestions right now. Please try again."});
+		response.put("replies",{"No " + category + " suggestions found. Please try another category."});
 		response.put("suggestions",{"Movies","Books","Games","Food","Music"});
 		return response;
 	}
-
-	cardCollection = Collection();
-	if(apiResult.containsKey("cards"))
+	catch(suggestErr)
 	{
-		cardsList = apiResult.get("cards");
-		if(cardsList != null)
-		{
-			for each  card in cardsList
-			{
-				cardCollection.insert(card);
-			}
-		}
-	}
-
-	if(cardCollection.size() > 0)
-	{
-		replies = Collection();
-		replies.insert("Here are some " + category + " picks:");
+		info "🟥 suggest_context fatal error " + suggestErr;
 		response.put("action","reply");
-		response.put("replies",replies);
-		response.put("cards",cardCollection);
+		response.put("replies",{"Sorry, something went wrong. Please try again."});
 		response.put("suggestions",{"Suggest Something","Book an Event","My Pick Combo","Connect with human"});
 		return response;
 	}
-
-	response.put("action","reply");
-	response.put("replies",{"No " + category + " suggestions found. Please try another category."});
-	response.put("suggestions",{"Movies","Books","Games","Food","Music"});
-	return response;
 }
 
 // ---------------- Book an Event ----------------
 if(context_id.equals("event_context"))
 {
-	eventType = "";
-	cityValue = "";
-
-	if(answers != null)
-	{
-		if(answers.containsKey("event_type"))
-		{
-			eventAnswer = answers.get("event_type");
-			if(eventAnswer != null)
-			{
-				try
-				{
-					eventType = eventAnswer.get("text").toString();
-				}
-				catch(eventErr)
-				{
-					eventType = eventAnswer.toString();
-				}
-			}
-		}
-		if(answers.containsKey("city"))
-		{
-			cityAnswer = answers.get("city");
-			if(cityAnswer != null)
-			{
-				try
-				{
-					cityValue = cityAnswer.get("text").toString();
-				}
-				catch(cityErr)
-				{
-					cityValue = cityAnswer.toString();
-				}
-			}
-		}
-	}
-
-	if(cityValue == "" || cityValue == null)
-	{
-		cityValue = "Delhi";
-	}
-
-	if(eventType == "" || eventType == null)
-	{
-		response.put("action","reply");
-		response.put("replies",{"Please choose an event type to continue."});
-		response.put("suggestions",{"Movies","Talkshow","Concerts","Find Events"});
-		return response;
-	}
-
-	payload = Map();
-	payload.put("category",eventType);
-	payload.put("city",cityValue);
-	apiResult = Map();
-	apiSuccess = true;
-
 	try
 	{
-		apiResult = invokeurl
-		[
-			url : "https://zorek.onrender.com/events_cards"
-			type : POST
-			parameters : payload
-		];
-	}
-	catch(apiErrEvent)
-	{
-		apiSuccess = false;
-	}
+		info "🟩 event_context answers " + answers;
+		eventType = "";
+		cityValue = "";
 
-	if(apiSuccess == false || apiResult == null || apiResult.isEmpty())
-	{
-		response.put("action","reply");
-		response.put("replies",{"Unable to fetch events right now. Please try again."});
-		response.put("suggestions",{"Book an Event","Suggest Something","My Pick Combo","Connect with human"});
-		return response;
-	}
-
-	cardCollection = Collection();
-	if(apiResult.containsKey("cards"))
-	{
-		cardsList = apiResult.get("cards");
-		if(cardsList != null)
+		if(answers != null)
 		{
-			for each  card in cardsList
+			if(answers.containsKey("event_type"))
 			{
-				cardCollection.insert(card);
+				eventAnswer = answers.get("event_type");
+				if(eventAnswer != null)
+				{
+					try
+					{
+						eventType = eventAnswer.get("text").toString();
+					}
+					catch(eventErr)
+					{
+						eventType = eventAnswer.toString();
+					}
+				}
+			}
+			if(answers.containsKey("city"))
+			{
+				cityAnswer = answers.get("city");
+				if(cityAnswer != null)
+				{
+					try
+					{
+						cityValue = cityAnswer.get("text").toString();
+					}
+					catch(cityErr)
+					{
+						cityValue = cityAnswer.toString();
+					}
+				}
 			}
 		}
-	}
 
-	if(cardCollection.size() > 0)
-	{
-		replies = Collection();
-		replies.insert("Here are some events in " + cityValue + ":");
+		if(cityValue == "" || cityValue == null)
+		{
+			cityValue = "Delhi";
+		}
+		info "🟩 event_context type/city " + eventType + " / " + cityValue;
+
+		if(eventType == "" || eventType == null)
+		{
+			response.put("action","reply");
+			response.put("replies",{"Please choose an event type to continue."});
+			response.put("suggestions",{"Movies","Talkshow","Concerts","Find Events"});
+			return response;
+		}
+
+		payload = Map();
+		payload.put("category",eventType);
+		payload.put("city",cityValue);
+		apiResult = Map();
+		apiSuccess = true;
+
+		try
+		{
+			apiResult = invokeurl
+			[
+				url : "https://zorek.onrender.com/events_cards"
+				type : POST
+				parameters : payload
+			];
+			info "🟩 event_context API result " + apiResult;
+		}
+		catch(apiErrEvent)
+		{
+			apiSuccess = false;
+			info "🟥 event_context invoke error " + apiErrEvent;
+		}
+
+		if(apiSuccess == false || apiResult == null || apiResult.isEmpty())
+		{
+			response.put("action","reply");
+			response.put("replies",{"Unable to fetch events right now. Please try again."});
+			response.put("suggestions",{"Book an Event","Suggest Something","My Pick Combo","Connect with human"});
+			return response;
+		}
+
+		cardCollection = Collection();
+		if(apiResult.containsKey("cards"))
+		{
+			cardsList = apiResult.get("cards");
+			if(cardsList != null)
+			{
+				for each  rawCard in cardsList
+				{
+					try
+					{
+						cardMap = Map();
+						if(rawCard.containsKey("title"))
+						{
+							cardMap.put("title",rawCard.get("title").toString());
+						}
+						else
+						{
+							cardMap.put("title","");
+						}
+						if(rawCard.containsKey("description"))
+						{
+							cardMap.put("description",rawCard.get("description").toString());
+						}
+						else
+						{
+							cardMap.put("description","");
+						}
+						if(rawCard.containsKey("imageUrl") && rawCard.get("imageUrl") != null)
+						{
+							imageVal = rawCard.get("imageUrl").toString();
+							if(imageVal != "" && imageVal != null)
+							{
+								cardMap.put("imageUrl",imageVal);
+							}
+						}
+						actionMap = Map();
+						if(rawCard.containsKey("action") && rawCard.get("action") != null)
+						{
+							actionData = rawCard.get("action");
+							if(actionData.containsKey("label"))
+							{
+								actionMap.put("label",actionData.get("label").toString());
+							}
+							else
+							{
+								actionMap.put("label","Book Tickets");
+							}
+							if(actionData.containsKey("url"))
+							{
+								actionMap.put("url",actionData.get("url").toString());
+							}
+							else
+							{
+								actionMap.put("url","");
+							}
+						}
+						else
+						{
+							actionMap.put("label","Book Tickets");
+							actionMap.put("url","");
+						}
+						cardMap.put("action",actionMap);
+						cardCollection.insert(cardMap);
+					}
+					catch(eventCardErr)
+					{
+						info "🟥 event_context card error " + eventCardErr;
+					}
+				}
+			}
+		}
+
+		info "🟩 event_context cards count " + cardCollection.size();
+
+		if(cardCollection.size() > 0)
+		{
+			response.put("action","reply");
+			response.put("cards",cardCollection);
+			response.put("suggestions",{"Book an Event","Suggest Something","My Pick Combo","Connect with human"});
+			return response;
+		}
+
 		response.put("action","reply");
-		response.put("replies",replies);
-		response.put("cards",cardCollection);
+		response.put("replies",{"No events found for " + eventType + " in " + cityValue + "."});
 		response.put("suggestions",{"Book an Event","Suggest Something","My Pick Combo","Connect with human"});
 		return response;
 	}
-
-	response.put("action","reply");
-	response.put("replies",{"No events found for " + eventType + " in " + cityValue + "."});
-	response.put("suggestions",{"Book an Event","Suggest Something","My Pick Combo","Connect with human"});
-	return response;
+	catch(eventContextErr)
+	{
+		info "🟥 event_context fatal error " + eventContextErr;
+		response.put("action","reply");
+		response.put("replies",{"Something went wrong while fetching events. Please try again."});
+		response.put("suggestions",{"Book an Event","Suggest Something","My Pick Combo","Connect with human"});
+		return response;
+	}
 }
 
 // ---------------- Combo Context ----------------
 if(context_id.equals("combo_context"))
 {
-	moodValue = "";
+	try
+	{
+		info "🟪 combo_context answers " + answers;
+		moodValue = "";
 	movieGenreValue = "";
 	songTypeValue = "";
 	dietValue = "";
@@ -269,6 +427,8 @@ if(context_id.equals("combo_context"))
 		}
 	}
 
+	info "🟪 combo_context prefs mood/movie/song/diet = " + moodValue + "/" + movieGenreValue + "/" + songTypeValue + "/" + dietValue;
+
 	payload = Map();
 	payload.put("mood",moodValue);
 	payload.put("movieGenre",movieGenreValue);
@@ -285,10 +445,12 @@ if(context_id.equals("combo_context"))
 			type : POST
 			parameters : payload
 		];
+		info "🟪 combo_context API result " + apiResult;
 	}
 	catch(apiErrCombo)
 	{
 		apiSuccess = false;
+		info "🟥 combo_context invoke error " + apiErrCombo;
 	}
 
 	if(apiSuccess == false || apiResult == null || apiResult.isEmpty())
@@ -305,33 +467,107 @@ if(context_id.equals("combo_context"))
 		cardsList = apiResult.get("cards");
 		if(cardsList != null)
 		{
-			for each  card in cardsList
+			for each  rawCard in cardsList
 			{
-				cardCollection.insert(card);
+				try
+				{
+					cardMap = Map();
+					if(rawCard.containsKey("title"))
+					{
+						cardMap.put("title",rawCard.get("title").toString());
+					}
+					else
+					{
+						cardMap.put("title","");
+					}
+					if(rawCard.containsKey("description"))
+					{
+						cardMap.put("description",rawCard.get("description").toString());
+					}
+					else
+					{
+						cardMap.put("description","");
+					}
+					if(rawCard.containsKey("imageUrl") && rawCard.get("imageUrl") != null)
+					{
+						imageVal = rawCard.get("imageUrl").toString();
+						if(imageVal != "" && imageVal != null)
+						{
+							cardMap.put("imageUrl",imageVal);
+						}
+					}
+					actionMap = Map();
+					if(rawCard.containsKey("action") && rawCard.get("action") != null)
+					{
+						actionData = rawCard.get("action");
+						if(actionData != null)
+						{
+							if(actionData.containsKey("label"))
+							{
+								actionMap.put("label",actionData.get("label").toString());
+							}
+							else
+							{
+								actionMap.put("label","View");
+							}
+							if(actionData.containsKey("url"))
+							{
+								actionMap.put("url",actionData.get("url").toString());
+							}
+							else
+							{
+								actionMap.put("url","");
+							}
+						}
+						else
+						{
+							actionMap.put("label","View");
+							actionMap.put("url","");
+						}
+					}
+					else
+					{
+						actionMap.put("label","View");
+						actionMap.put("url","");
+					}
+					cardMap.put("action",actionMap);
+					cardCollection.insert(cardMap);
+				}
+				catch(cardErr)
+				{
+					// Skip invalid card and continue
+				}
 			}
 		}
 	}
 
+	info "🟪 combo_context cards count " + cardCollection.size();
+
 	if(cardCollection.size() > 0)
 	{
-		replies = Collection();
-		replies.insert("Here’s your personalized combo!");
 		response.put("action","reply");
-		response.put("replies",replies);
 		response.put("cards",cardCollection);
 		response.put("suggestions",{"My Pick Combo","Suggest Something","Book an Event","Connect with human"});
 		return response;
 	}
 
 	response.put("action","reply");
-	response.put("replies",{"I couldn’t build a combo. Please adjust your preferences."});
+	response.put("replies",{"I couldn't build a combo. Please adjust your preferences."});
 	response.put("suggestions",{"My Pick Combo","Suggest Something","Book an Event","Connect with human"});
 	return response;
+	}
+	catch(comboContextErr)
+	{
+		info "🟥 combo_context fatal error " + comboContextErr;
+		response.put("action","reply");
+		response.put("replies",{"Unable to build a combo right now. Please try again later."});
+		response.put("suggestions",{"My Pick Combo","Suggest Something","Book an Event","Connect with human"});
+		return response;
+	}
 }
 
 // ---------------- Default Fallback ----------------
 response.put("action","reply");
-response.put("replies",{"I didn’t understand that. Please choose an option."});
+response.put("replies",{"I didn't understand that. Please choose an option."});
 response.put("suggestions",{"Suggest Something","Book an Event","My Pick Combo","Connect with human"});
 return response;
-
