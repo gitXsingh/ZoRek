@@ -958,99 +958,75 @@ def internal_error(e):
 # For Zoho SalesIQ bot integration only - no web interface served here
 @app.route('/')
 def home():
-    """Root endpoint - returns a minimal landing page with bot embed"""
+    """Simple landing page with subtle hero and SalesIQ widget"""
     print(f"\n📋 [INFO] Root endpoint accessed from {request.remote_addr} at {datetime.datetime.utcnow().isoformat()}\n")
 
     html = """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>ZoRek · SalesIQ Bot Backend</title>
-        <style>
-            :root {
-                color-scheme: dark;
-            }
-            * {
-                box-sizing: border-box;
-                font-family: "Segoe UI", "Inter", sans-serif;
-            }
-            body {
-                margin: 0;
-                min-height: 100vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: radial-gradient(circle at top, #1e3c72, #2a5298, #0b0f25);
-                color: #f4f5ff;
-                padding: 2rem;
-            }
-            .card {
-                background: rgba(8, 10, 20, 0.7);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 18px;
-                padding: 2rem 2.5rem;
-                max-width: 720px;
-                width: 100%;
-                box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
-                backdrop-filter: blur(12px);
-                text-align: center;
-            }
-            h1 {
-                margin: 0 0 0.5rem;
-                font-size: clamp(2rem, 4vw, 2.75rem);
-            }
-            p {
-                margin: 0.5rem 0;
-                font-size: 1.05rem;
-                line-height: 1.6;
-                color: rgba(244, 245, 255, 0.85);
-            }
-            .endpoints {
-                margin-top: 1.5rem;
-                display: inline-flex;
-                flex-wrap: wrap;
-                gap: 0.5rem;
-                justify-content: center;
-            }
-            .chip {
-                background: rgba(255, 255, 255, 0.08);
-                border-radius: 999px;
-                padding: 0.4rem 1rem;
-                font-size: 0.95rem;
-                border: 1px solid rgba(255, 255, 255, 0.1);
-            }
-            footer {
-                margin-top: 1.75rem;
-                font-size: 0.85rem;
-                letter-spacing: 0.05em;
-                text-transform: uppercase;
-                color: rgba(244, 245, 255, 0.6);
-            }
-        </style>
-    </head>
-    <body>
-        <main class="card" role="main">
-            <h1>ZoRek Bot Backend</h1>
-            <p>Flask service is live and ready for the Zoho SalesIQ script bot.</p>
-            <p>The bot will appear when the SalesIQ widget loads below.</p>
-            <div class="endpoints" aria-label="Available endpoints">
-                <span class="chip">POST /suggest_cards</span>
-                <span class="chip">POST /events_cards</span>
-                <span class="chip">POST /recommendations</span>
-                <span class="chip">GET /health_check</span>
-            </div>
-            <footer>ZoRek · Entertainment Assistant</footer>
-        </main>
-        <script>
-            window.$zoho = window.$zoho || {};
-            $zoho.salesiq = $zoho.salesiq || {ready:function(){}};
-        </script>
-        <script id="zsiqscript" src="https://salesiq.zohopublic.com/widget?wc=siq5bbfed3274ca9acdcade85bd6f8a63dcc621b2560b3aa6bfe6d3f52d07cb0ee1" defer></script>
-    </body>
-    </html>
-    """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZoRek · Entertainment Assistant</title>
+    <style>
+        :root { color-scheme: dark; }
+        * { box-sizing: border-box; font-family: "Inter","Segoe UI",sans-serif; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #101428 0%, #181f3a 60%, #101428 100%);
+            color: #f3f5ff;
+        }
+        .hero {
+            text-align: center;
+            padding: 2.5rem 2rem;
+            border-radius: 18px;
+            background: rgba(4,6,14,0.7);
+            border: 1px solid rgba(255,255,255,0.08);
+            width: min(90vw, 640px);
+            box-shadow: 0 25px 55px rgba(5,8,20,0.55);
+            backdrop-filter: blur(12px);
+        }
+        h1 {
+            margin: 0;
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            letter-spacing: 0.02em;
+        }
+        p {
+            margin: 1rem auto 0;
+            font-size: 1.05rem;
+            max-width: 480px;
+            color: rgba(243,245,255,0.78);
+            line-height: 1.6;
+        }
+        .pill {
+            display: inline-flex;
+            gap: 0.4rem;
+            padding: 0.55rem 1.25rem;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.05);
+            margin-top: 1.5rem;
+            font-size: 0.92rem;
+            color: rgba(243,245,255,0.9);
+        }
+    </style>
+</head>
+<body>
+    <main class="hero">
+        <div class="pill">ZoRek · SalesIQ Entertainment Bot</div>
+        <h1>Entertainment assistant is live.</h1>
+        <p>ZoRek is running as a backend service for the Zoho SalesIQ script bot. Use your SalesIQ interface to chat with the assistant. This page only hosts the widget script.</p>
+    </main>
+    <script>window.$zoho=window.$zoho||{};$zoho.salesiq=$zoho.salesiq||{ready:function(){}};</script>
+    <script id="zsiqscript" src="https://salesiq.zohopublic.com/widget?wc=siq5bbfed3274ca9acdcade85bd6f8a63dcc621b2560b3aa6bfe6d3f52d07cb0ee1" defer></script>
+</body>
+</html>
+"""
 
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 
