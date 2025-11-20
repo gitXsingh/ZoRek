@@ -26,6 +26,38 @@ if(context_id.equals("suggest_context"))
 
 		info "🟦 suggest_context category " + category;
 
+		if(category != null)
+		{
+			categoryLower = category.toLowerCase();
+			if(categoryLower.contains("movie") || categoryLower.contains("film") || categoryLower.contains("cinema"))
+			{
+				category = "movies";
+			}
+			else if(categoryLower.contains("book") || categoryLower.contains("novel") || categoryLower.contains("read"))
+			{
+				category = "books";
+			}
+			else if(categoryLower.contains("game") || categoryLower.contains("play"))
+			{
+				category = "games";
+			}
+			else if(categoryLower.contains("food") || categoryLower.contains("recipe") || categoryLower.contains("dish"))
+			{
+				category = "food";
+			}
+			else if(categoryLower.contains("music") || categoryLower.contains("song") || categoryLower.contains("playlist"))
+			{
+				category = "music";
+			}
+			else if(categoryLower.contains("surprise"))
+			{
+				randomChoices = {"movies","books","games","food","music"};
+				randomIndex = zoho.currenttime.toLong() % randomChoices.size();
+				category = randomChoices.get(randomIndex);
+				info "🟦 suggest_context surprise mapped to " + category;
+			}
+		}
+
 		if(category == "" || category == null)
 		{
 			response.put("action","reply");
@@ -211,6 +243,35 @@ if(context_id.equals("event_context"))
 			}
 		}
 
+		if(eventType != null)
+		{
+			eventLower = eventType.toLowerCase();
+			if(eventLower.contains("concert"))
+			{
+				eventType = "concerts";
+			}
+			else if(eventLower.contains("talk"))
+			{
+				eventType = "talkshow";
+			}
+			else if(eventLower.contains("movie"))
+			{
+				eventType = "movies";
+			}
+			else if(eventLower.contains("theater") || eventLower.contains("theatre"))
+			{
+				eventType = "theater";
+			}
+			else if(eventLower.contains("sport"))
+			{
+				eventType = "sports";
+			}
+			else if(eventLower.contains("find"))
+			{
+				eventType = "find events";
+			}
+		}
+
 		if(cityValue == "" || cityValue == null)
 		{
 			cityValue = "Delhi";
@@ -359,9 +420,9 @@ if(context_id.equals("combo_context"))
 	{
 		info "🟪 combo_context answers " + answers;
 		moodValue = "";
-	movieGenreValue = "";
-	songTypeValue = "";
-	dietValue = "";
+		movieGenreValue = "";
+		songTypeValue = "";
+		dietValue = "";
 
 	if(answers != null)
 	{
@@ -427,7 +488,20 @@ if(context_id.equals("combo_context"))
 		}
 	}
 
-	info "🟪 combo_context prefs mood/movie/song/diet = " + moodValue + "/" + movieGenreValue + "/" + songTypeValue + "/" + dietValue;
+		if(movieGenreValue != null && movieGenreValue.toLowerCase().contains("surprise"))
+		{
+			movieGenreValue = "random";
+		}
+		if(songTypeValue != null && songTypeValue.toLowerCase().equals("any"))
+		{
+			songTypeValue = "";
+		}
+		if(dietValue != null && dietValue.toLowerCase().equals("any"))
+		{
+			dietValue = "";
+		}
+
+		info "🟪 combo_context prefs mood/movie/song/diet = " + moodValue + "/" + movieGenreValue + "/" + songTypeValue + "/" + dietValue;
 
 	payload = Map();
 	payload.put("mood",moodValue);

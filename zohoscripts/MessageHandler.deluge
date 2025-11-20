@@ -20,8 +20,8 @@ if(msg.equalsIgnoreCase("Suggest Something"))
 	questions = Collection();
 	q = Map();
 	q.put("name","category");
-	q.put("replies",{"Choose a category to get curated picks."});
-	q.put("suggestions",{"Movies","Books","Games","Food","Music"});
+	q.put("replies",{"Pick what you feel like discovering today."});
+	q.put("suggestions",{"Movies","Books","Games","Food","Music","Surprise Me"});
 	questions.insert(q);
 	response.put("questions",questions);
 	return response;
@@ -33,11 +33,12 @@ else if(msg.equalsIgnoreCase("Book an Event"))
 	questions = Collection();
 	q1 = Map();
 	q1.put("name","event_type");
-	q1.put("replies",{"Which event are you interested in?"});
-	q1.put("suggestions",{"Movies","Talkshow","Concerts","Find Events"});
+	q1.put("replies",{"What kind of outing do you have in mind?"});
+	q1.put("suggestions",{"Movies (Now Playing)","Concerts","Talkshow","Theater","Sports","Find Events"});
 	q2 = Map();
 	q2.put("name","city");
 	q2.put("replies",{"Which city should I search in? (e.g., Mumbai, Delhi)"});
+	q2.put("suggestions",{"Mumbai","Delhi","Bengaluru","Hyderabad","Chennai","Pune"});
 	questions.insert(q1);
 	questions.insert(q2);
 	response.put("questions",questions);
@@ -52,20 +53,22 @@ else if(msg.equalsIgnoreCase("My Pick Combo"))
 	qMood = Map();
 	qMood.put("name","mood");
 	qMood.put("replies",{"What's your mood right now?"});
-	qMood.put("suggestions",{"Happy","Calm","Romantic","Energetic","Mystery"});
+	qMood.put("suggestions",{"Happy","Chill","Romantic","Energetic","Mystery","Adventurous"});
 
 	qMovie = Map();
 	qMovie.put("name","movieGenre");
-	qMovie.put("replies",{"Preferred movie genre? (e.g., Action, Drama)"});
+	qMovie.put("replies",{"Preferred movie vibe? (e.g., Action, Drama)"});
+	qMovie.put("suggestions",{"Action","Drama","Comedy","Thriller","Sci-Fi","Surprise Me"});
 
 	qSong = Map();
 	qSong.put("name","songType");
 	qSong.put("replies",{"Preferred song style? (e.g., Pop, Rock)"});
+	qSong.put("suggestions",{"Pop","Rock","Hip-Hop","Lo-fi","Classical","EDM"});
 
 	qDiet = Map();
 	qDiet.put("name","diet");
 	qDiet.put("replies",{"Diet preference?"});
-	qDiet.put("suggestions",{"Veg","Non-Veg","Vegan"});
+	qDiet.put("suggestions",{"Veg","Non-Veg","Vegan","Keto","Any"});
 
 	questions.insert(qMood);
 	questions.insert(qMovie);
