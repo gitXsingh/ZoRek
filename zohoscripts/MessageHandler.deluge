@@ -6,11 +6,31 @@ if(message != null && message.containsKey("text"))
 	msg = message.get("text").toString().trim();
 }
 
+info "🟦 message handler invoked. operation=" + operation + " text=" + msg;
+
 mainOptions = Collection();
 mainOptions.insert("Suggest Something");
 mainOptions.insert("Book an Event");
 mainOptions.insert("My Pick Combo");
 mainOptions.insert("Connect with human");
+
+// When conversation just started, mirror trigger greeting so visitor isn't stuck
+if(operation != null && operation.equalsIgnoreCase("chat") && msg == "")
+{
+	response.put("action","reply");
+	response.put("replies",{"Hi again! Choose an option below to get started."});
+	response.put("suggestions",mainOptions);
+	return response;
+}
+
+// If visitor sent nothing (e.g., quick reply cleared), nudge them
+if(msg == "")
+{
+	response.put("action","reply");
+	response.put("replies",{"I didn't catch that. Please pick an option."});
+	response.put("suggestions",mainOptions);
+	return response;
+}
 
 // Handle primary commands
 if(msg.equalsIgnoreCase("Suggest Something"))

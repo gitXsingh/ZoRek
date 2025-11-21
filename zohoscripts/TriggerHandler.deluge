@@ -1,3 +1,5 @@
+info "🟢 trigger handler invoked. visitor=" + visitor + " request=" + request;
+
 response = Map();
 replies = Collection();
 replies.insert("Hi! I'm ZoRek 🎬 your entertainment assistant.");

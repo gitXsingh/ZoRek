@@ -36,16 +36,22 @@ def normalize(value: str) -> str:
     return str(value).strip().lower()
 
 
-def make_card(title: str, desc: str = "", img: str = None, label: str = "View", url: str = None) -> dict:
-    """Create a standardized card object"""
+def make_card(title: str, desc: str = "", img: str = None, label: str = "View", url: str = None, card_id: str = None) -> dict:
+    """Create a standardized card object in Zoho Multiple Product format"""
+    card_id = card_id or title.lower().replace(" ", "_").replace("(", "").replace(")", "").replace(":", "")[:50]
     return {
+        "id": card_id,
         "title": str(title) if title else "No Title",
-        "description": str(desc) if desc else "",
-        "imageUrl": str(img) if img else None,
-        "action": {
-            "label": str(label) if label else "Open",
-            "url": str(url) if url else None
-        }
+        "subtitle": str(desc) if desc else "",
+        "image": str(img) if img else "",
+        "actions": [
+            {
+                "label": str(label) if label else "Open",
+                "name": card_id + "_action",
+                "type": "url",
+                "link": str(url) if url else "https://zorek.onrender.com"
+            }
+        ]
     }
 
 
@@ -56,8 +62,22 @@ def fallback_empty_card() -> dict:
         desc="Try again later",
         img=None,
         label="Open",
-        url=None
+        url=None,
+        card_id="no_data"
     )
+
+
+def multiple_product_payload(text: str, cards: List[dict]) -> dict:
+    """Wrap cards in Zoho multiple-product payload while keeping backward compatibility"""
+    safe_cards = cards or [fallback_empty_card()]
+    safe_text = text or "Here are some picks for you:"
+    return {
+        "type": "multiple-product",
+        "text": safe_text,
+        "elements": safe_cards,
+        # Keep legacy key so older handlers (or logging) can still access cards
+        "cards": safe_cards
+    }
 
 
 FALLBACK_SUGGESTIONS = {
@@ -213,7 +233,7 @@ def create_bot_routes(
             if not data:
                 logger.error("❌ ERROR: No data received or couldn't parse")
                 print("   ❌ ERROR: No data received or couldn't parse")
-                return jsonify({"cards": [fallback_empty_card()]}), 400
+                return jsonify(multiple_product_payload("Unable to read request payload.", [fallback_empty_card()])), 400
             
             category = normalize(safe_get(data, "category", ""))
             prefs_raw = safe_get(data, "prefs", {}) or {}
@@ -236,7 +256,7 @@ def create_bot_routes(
             if not category:
                 logger.error("❌ ERROR: No category provided")
                 print("   ❌ ERROR: No category provided")
-                return jsonify({"cards": [fallback_empty_card()]}), 400
+                return jsonify(multiple_product_payload("Please provide a category.", [fallback_empty_card()])), 400
             
             # Get items based on category
             items = []
@@ -385,7 +405,7 @@ def create_bot_routes(
             except Exception:
                 pass  # Non-blocking
             
-            return jsonify({"cards": cards})
+            return jsonify(multiple_product_payload(f"Here are some {category.title()} suggestions:", cards))
             
         except Exception as e:
             error_msg = traceback.format_exc()
@@ -394,7 +414,7 @@ def create_bot_routes(
             print(f"   ❌ EXCEPTION: {str(e)}")
             print("="*60 + "\n")
             print("❌ suggest_cards error:", error_msg)
-            return jsonify({"cards": [fallback_empty_card()]}), 400
+            return jsonify(multiple_product_payload("Unable to fetch suggestions right now.", [fallback_empty_card()])), 400
 
     @app.route('/events_cards', methods=['POST'])
     def events_cards():
@@ -442,7 +462,7 @@ def create_bot_routes(
             if not data:
                 logger.error("❌ ERROR: No data received or couldn't parse")
                 print("   ❌ ERROR: No data received or couldn't parse")
-                return jsonify({"cards": [fallback_empty_card()]}), 400
+                return jsonify(multiple_product_payload("Unable to read request payload.", [fallback_empty_card()])), 400
             
             category = normalize(safe_get(data, "category", ""))
             city = normalize(safe_get(data, "city", "")) or "mumbai"  # Default fallback
@@ -453,7 +473,7 @@ def create_bot_routes(
             if not category:
                 logger.error("❌ ERROR: No category provided")
                 print("   ❌ ERROR: No category provided")
-                return jsonify({"cards": [fallback_empty_card()]}), 400
+                return jsonify(multiple_product_payload("Please provide an event category.", [fallback_empty_card()])), 400
             
             # Get events based on category
             results = []
@@ -545,10 +565,9 @@ def create_bot_routes(
             logger.info(f"✅ Output: {len(cards)} cards generated")
             print(f"   ✅ Output: {len(cards)} cards generated")
             
-            # Log the actual response being sent
-            response_data = {"cards": cards}
+            response_data = multiple_product_payload(f"Here are events for {category.title()} in {city.title()}:", cards)
             logger.info(f"Response JSON (first 500 chars): {str(response_data)[:500]}")
-            print(f"   📤 Sending response with {len(cards)} cards")
+            print(f"   📤 Sending response with {len(cards)} cards in Multiple Product format")
             
             print("="*60 + "\n")
             logger.info("="*60)
@@ -575,7 +594,7 @@ def create_bot_routes(
             print(f"   ❌ EXCEPTION: {str(e)}")
             print("="*60 + "\n")
             print("❌ events_cards error:", error_msg)
-            return jsonify({"cards": [fallback_empty_card()]}), 400
+            return jsonify(multiple_product_payload("Unable to fetch events right now.", [fallback_empty_card()])), 400
 
     @app.route('/recommendations', methods=['POST'])
     def recommendations():
@@ -623,13 +642,14 @@ def create_bot_routes(
             if not data:
                 logger.error("❌ ERROR: No data received or couldn't parse")
                 print("   ❌ ERROR: No data received or couldn't parse")
-                return jsonify({
-                    "cards": [fallback_empty_card()],
+                payload = multiple_product_payload("Please share your mood and preferences to start.", [fallback_empty_card()])
+                payload.update({
                     "movie": {"text": "", "url": None, "image": None, "poster": None},
                     "song": {"text": "", "url": None, "image": None, "source": ""},
                     "food": {"text": "", "url": None, "image": None},
                     "inputs": {"mood": "", "movieGenre": "", "songType": "", "diet": ""}
-                }), 400
+                })
+                return jsonify(payload), 400
             
             mood = normalize(safe_get(data, "mood", ""))
             movie_genre = normalize(safe_get(data, "movieGenre", "random"))
@@ -757,8 +777,8 @@ def create_bot_routes(
             except Exception:
                 pass  # Non-blocking
             
-            return jsonify({
-                "cards": cards,
+            payload = multiple_product_payload("Your personalized combo is ready!", cards)
+            payload.update({
                 "movie": movie_result,
                 "song": song_result,
                 "food": food,
@@ -769,15 +789,17 @@ def create_bot_routes(
                     "diet": diet
                 }
             })
+            return jsonify(payload)
             
         except Exception as e:
             print(f"   ❌ EXCEPTION: {str(e)}")
             print("="*60 + "\n")
             print("❌ Recommendations error:", traceback.format_exc())
-            return jsonify({
-                "cards": [fallback_empty_card()],
+            payload = multiple_product_payload("Unable to build a combo right now.", [fallback_empty_card()])
+            payload.update({
                 "movie": {"text": "", "url": None, "image": None, "poster": None},
                 "song": {"text": "", "url": None, "image": None, "source": ""},
                 "food": {"text": "", "url": None, "image": None},
                 "inputs": {"mood": "", "movieGenre": "", "songType": "", "diet": ""}
-            }), 400
+            })
+            return jsonify(payload), 400
