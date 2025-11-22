@@ -1,0 +1,1162 @@
+
+Copy the below piece of sample code in the Context Handler: 
+
+response = Map();
+info answers;
+if (context_id.equals("greatdeals")) {
+    ans = answers.get("found").get("text");
+    if (ans.containsIgnoreCase("Choose different%")) {
+        response.put("action", "context");
+        response.put("context_id", "greatdeals");
+        questions = Collection();
+        question1 = {
+            "name": "greatdeals",
+            "replies": {
+                {
+                    "text": "You got lucky! I have a number of exciting offers for you. Tell me what % discounts are you looking for? It will help me show you the best results."
+                }
+            },
+            "input": {
+                "type": "slider",
+                "values": {
+                    "0",
+                    "10",
+                    "20",
+                    "30",
+                    "70"
+                }
+            }
+        };
+        question2 = {
+            "name": "found",
+            "replies": {
+                {
+                    "text": "I found products you can choose from given options"
+                },
+                {
+                    "text": "1. T-shirts,jeans & more-Min 40% + Extra 10% off UCB,Lee...",
+                    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSd1iHZzkvhYxba0rWl4T9lj-tgEw4od7__pCtZcjXAW4FrdDzd"
+                },
+                {
+                    "text": "2. Bean Bags & More Extra 10% off Budget Friendly Furniture",
+                    "image": "https://5.imimg.com/data5/PE/AS/MY-37550917/gabbroo-bean-bag-brown-500x500.jpeg"
+                },
+                {
+                    "text": "3. Headphones & Speakers From ₹449 F&D,SkullCandy,JVC...",
+                    "image": "https://azcd.harveynorman.com.au/media/catalog/product/cache/21/image/992x558/9df78eab33525d08d6e5fb8d27136e95/b/a/barrel-xl-3696432.jpg"
+                },
+                {
+                    "text": "4. Four Star Dry Irons- upto 70% off From ₹299",
+                    "image": "https://images-na.ssl-images-amazon.com/images/I/71JWeBjxWGL._SX425_.jpg"
+                },
+                {
+                    "text": "Choose a different products or go for given mentioned options"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Choose different%",
+                    "Not interested",
+                    "1",
+                    "2",
+                    "3",
+                    "4"
+                }
+            }
+        };
+        questions.insert(question1);
+        questions.insert(question2);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("Not interested")) {
+        response.put("action", "end");
+    } else if (ans.equalsIgnoreCase("1") || ans.equalsIgnoreCase("2") || ans.equalsIgnoreCase("3") || ans.equalsIgnoreCase("4")) {
+        if (ans.equalsIgnoreCase("1")) {
+            data = "T-shirts,jeans & more - Min 40 %";
+        } else if (ans.equalsIgnoreCase("2")) {
+            data = "Bean bags & more Extra 10% ";
+        } else if (ans.equalsIgnoreCase("3")) {
+            data = "Headphones & speakers";
+        } else {
+            data = "Four star dry irons upto 70% off";
+        }
+        response.put("action", "context");
+        response.put("context_id", "productoption");
+        questions = Collection();
+        question1 = {
+            "name": "option",
+            "replies": {
+                {
+                    "text": data
+                },
+                {
+                    "text": "Great choice! Please share your phone number where I'll send you the promo code."
+                }
+            },
+            "suggestions": {
+                "Notify me later",
+                "Add to my wishlist",
+                "Add to my cart"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("productoption")) {
+    ans = answers.get("option").get("text");
+    if (ans.containsIgnoreCase("Notify me later") || ans.containsIgnoreCase("Add to my wishlist") || ans.containsIgnoreCase("Add to my cart")) {
+        response.put("action", "end");
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "otherdeals");
+        questions = Collection();
+        question1 = {
+            "name": "deals",
+            "replies": {
+                {
+                    "text": "Thanks. Check your phone for the promo code.Happy shopping!"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "get another deal",
+                    "Thank you"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("otherdeals")) {
+    ans = answers.get("deals").get("text");
+    if (ans.containsIgnoreCase("get another deal")) {
+        response.put("action", "context");
+        response.put("context_id", "greatdeals");
+        questions = Collection();
+        question1 = {
+            "name": "greatdeals",
+            "replies": {
+                {
+                    "text": "You got lucky! I have a number of exciting offers for you. Tell me what % discounts are you looking for? It will help me show you the best results."
+                }
+            },
+            "input": {
+                "type": "slider",
+                "values": {
+                    "0",
+                    "10",
+                    "20",
+                    "30",
+                    "70"
+                }
+            }
+        };
+        question2 = {
+            "name": "found",
+            "replies": {
+                {
+                    "text": "I found products you can choose from given options"
+                },
+                {
+                    "text": "1. T-shirts,jeans & more-Min 40% + Extra 10% off UCB,Lee...",
+                    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSd1iHZzkvhYxba0rWl4T9lj-tgEw4od7__pCtZcjXAW4FrdDzd"
+                },
+                {
+                    "text": "2. Bean Bags & More Extra 10% off Budget Friendly Furniture",
+                    "image": "https://5.imimg.com/data5/PE/AS/MY-37550917/gabbroo-bean-bag-brown-500x500.jpeg"
+                },
+                {
+                    "text": "3. Headphones & Speakers From ₹449 F&D,SkullCandy,JVC...",
+                    "image": "https://azcd.harveynorman.com.au/media/catalog/product/cache/21/image/992x558/9df78eab33525d08d6e5fb8d27136e95/b/a/barrel-xl-3696432.jpg"
+                },
+                {
+                    "text": "4. Four Star Dry Irons- upto 70% off From ₹299",
+                    "image": "https://images-na.ssl-images-amazon.com/images/I/71JWeBjxWGL._SX425_.jpg"
+                },
+                {
+                    "text": "Choose a different products or go for given mentioned options"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Choose different%",
+                    "Not interested",
+                    "1",
+                    "2",
+                    "3",
+                    "4"
+                }
+            }
+        };
+        questions.insert(question1);
+        questions.insert(question2);
+        response.put("questions", questions);
+    } else {
+        response.put("action", "end");
+    }
+}
+if (context_id.equals("helppurchasing")) {
+    ans = answers.get("buy").get("text");
+    if (ans.containsIgnoreCase("Mobiles,Computers")) {
+        response.put("action", "context");
+        response.put("context_id", "mobilecomputer");
+        questions = Collection();
+        question1 = {
+            "name": "budget",
+            "replies": {
+                {
+                    "text": "Nice.Do you have budget in mind?"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Below $5000",
+                    "$5000-$10000",
+                    "Above $10000",
+                    "Show all"
+                }
+            }
+        };
+        question2 = {
+            "name": "search",
+            "replies": {
+                {
+                    "text": "I'm searching the entire store.Phew...It's tiring.Do humans get tired too? just curious"
+                },
+                {
+                    "text": "Ok,here is some good stuff that I found"
+                },
+                {
+                    "text": "1.One plus 6 (Mirror Black, 8GB RAM + 128GB Memory) - ₹39,999",
+                    "image": "https://i.ytimg.com/vi/MgpsZWTx7AA/maxresdefault.jpg"
+                },
+                {
+                    "text": "2.Moto G5s Plus (Lunar Grey,64GB) - ₹12,998",
+                    "image": "https://drop.ndtv.com/TECH/product_database/images/822017113150AM_635_moto_g5s_fine_gold.jpeg"
+                },
+                {
+                    "text": "3.Huawei Nova 3i (Black 4GB RAM + 128 GB Memory) - ₹20,990",
+                    "image": "https://consumer-img.huawei.com/content/dam/huawei-cbg-site/common/mkt/pdp/phones/nova-3i/img/huawei_nova3i_kv_back.jpg"
+                },
+                {
+                    "text": "4.RealMe 1(Diamond Black,6+128 GB) - ₹13,999",
+                    "image": "https://www.91-img.com/pictures/127049-v4-realme-1-mobile-phone-large-1.jpg"
+                },
+                {
+                    "text": "Select from given options"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "1",
+                    "2",
+                    "3",
+                    "4"
+                }
+            }
+        };
+        questions.insert(question1);
+        questions.insert(question2);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("Sports,Fitness,Bags,Luggage")) {
+        response.put("action", "context");
+        response.put("context_id", "sports");
+        questions = Collection();
+        question1 = {
+            "name": "budget",
+            "replies": {
+                {
+                    "text": "Nice.Do you have budget in mind?"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Below $5000",
+                    "$5000-$10000",
+                    "Above $10000",
+                    "Show all"
+                }
+            }
+        };
+        question2 = {
+            "name": "search",
+            "replies": {
+                {
+                    "text": "Give me a moment while I hunt for some really cool stuff for you"
+                },
+                {
+                    "text": "Here are some of the things I've picked up. Do you like any of these?"
+                },
+                {
+                    "text": "1.Li-Ning Super Force 85 Full Carbon Graphite Badminton Racquet- ₹3,299",
+                    "image": "https://www.stringersworld.com/images/detailed/28/Duora6_2016_800.jpg?t=1476787706"
+                },
+                {
+                    "text": "2 Yonex Zr 100 Aluminum Badminton Racquet ₹374-450",
+                    "image": "http://www.fitlark.com/wp-content/uploads/2017/12/GR303.jpg"
+                },
+                {
+                    "text": "3.Yonex Gr 303 Badminton Racquet - ₹374-450",
+                    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS35Yg1YnZLSyPT__r3gFl6DoSEZfvKbEV4lphRySA3Tae6RrFf"
+                },
+                {
+                    "text": "4.Yonex Carbonex Badminton Racquet - ₹139-499",
+                    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQHkasS6tcLb7UbrOIthOl_u4VJhqnYPY_uDko17WzJiFNU-gXt"
+                },
+                {
+                    "text": "Select from given options"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "1",
+                    "2",
+                    "3",
+                    "4"
+                }
+            }
+        };
+        questions.insert(question1);
+        questions.insert(question2);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("TV,Appliances,Electronics")) {
+        response.put("action", "context");
+        response.put("context_id", "tv");
+        questions = Collection();
+        question1 = {
+            "name": "budget",
+            "replies": {
+                {
+                    "text": "Nice.Do you have budget in mind?"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Below $5000",
+                    "$5000-$10000",
+                    "Above $10000",
+                    "Show all"
+                }
+            }
+        };
+        question2 = {
+            "name": "search",
+            "replies": {
+                {
+                    "text": "Give me a moment while I hunt for some really cool stuff for you"
+                },
+                {
+                    "text": "Here are some of the things I've picked up. Do you like any of these?"
+                },
+                {
+                    "text": "1.Sanyo 108.2cm LED TV -₹29,999",
+                    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPdTiJ7grtuVNLstiKI1Z3AjVe83YHH9mX0wQz1B5AqjPjvYjeqg"
+                },
+                {
+                    "text": "2.BPL 109cm LED TV- ₹22,998",
+                    "image": "https://image1.pricedekho.com/p/6/6/96/1539096/7333791-panasonic-40-inch-1016-cm-led-tv-th-l40b6dx-picture-large.jpg"
+                },
+                {
+                    "text": "3.Panasonic 147cm LED TV- ₹23,990",
+                    "image": "https://www.ssscart.com/wp-content/uploads/2017/09/panasonic-TH-32AS630D-1.jpg"
+                },
+                {
+                    "text": "4.Sanyo 107.95cm LED TV - ₹23,999",
+                    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTN_7UwK3Gjus6NgbhRuS7keQ3m_JMbS-3zGxx39-9qzhGa3sbS"
+                },
+                {
+                    "text": "Select from given options"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "1",
+                    "2",
+                    "3",
+                    "4"
+                }
+            }
+        };
+        questions.insert(question1);
+        questions.insert(question2);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("Show all categories")) {
+        response.put("action", "context");
+        response.put("context_id", "showall");
+        questions = Collection();
+        question1 = {
+            "name": "budget",
+            "replies": {
+                {
+                    "text": "Nice.Do you have budget in mind?"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Below $5000",
+                    "$5000-$10000",
+                    "Above $10000",
+                    "Show all"
+                }
+            }
+        };
+        question2 = {
+            "name": "search",
+            "replies": {
+                {
+                    "text": "Give me a moment while I hunt for some really cool stuff for you"
+                },
+                {
+                    "text": "Here are some of the things I've picked up. Do you like any of these?"
+                },
+                {
+                    "text": "Tv,Appliances,electronics"
+                },
+                {
+                    "text": "1.Sanyo 108.2cm LED TV -₹29,999",
+                    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPdTiJ7grtuVNLstiKI1Z3AjVe83YHH9mX0wQz1B5AqjPjvYjeqg"
+                },
+                {
+                    "text": "2.BPL 109cm LED TV- ₹22,998",
+                    "image": "https://image1.pricedekho.com/p/6/6/96/1539096/7333791-panasonic-40-inch-1016-cm-led-tv-th-l40b6dx-picture-large.jpg"
+                },
+                {
+                    "text": "3.Panasonic 147cm LED TV- ₹23,990",
+                    "image": "https://www.ssscart.com/wp-content/uploads/2017/09/panasonic-TH-32AS630D-1.jpg"
+                },
+                {
+                    "text": "4.Sanyo 107.95cm LED TV - ₹23,999",
+                    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTN_7UwK3Gjus6NgbhRuS7keQ3m_JMbS-3zGxx39-9qzhGa3sbS"
+                },
+                {
+                    "text": "Mobiles,Computers"
+                },
+                {
+                    "text": "5.One plus 6 (Mirror Black, 8GB RAM + 128GB Memory) - ₹39,999",
+                    "image": "https://i.ytimg.com/vi/MgpsZWTx7AA/maxresdefault.jpg"
+                },
+                {
+                    "text": "6.Moto G5s Plus (Lunar Grey,64GB) - ₹12,998",
+                    "image": "https://drop.ndtv.com/TECH/product_database/images/822017113150AM_635_moto_g5s_fine_gold.jpeg"
+                },
+                {
+                    "text": "Sports,Fitness,Bags,Luggage"
+                },
+                {
+                    "text": "7.Li-Ning Super Force 85 Full Carbon Graphite Badminton Racquet- ₹3,299",
+                    "image": "https://www.stringersworld.com/images/detailed/28/Duora6_2016_800.jpg?t=1476787706"
+                },
+                {
+                    "text": "8 Yonex Zr 100 Aluminum Badminton Racquet ₹374-450",
+                    "image": "http://www.fitlark.com/wp-content/uploads/2017/12/GR303.jpg"
+                },
+                {
+                    "text": "Select from given options"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                    "6",
+                    "7",
+                    "8"
+                }
+            }
+        };
+        questions.insert(question1);
+        questions.insert(question2);
+        response.put("questions", questions);
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "helppurchasing");
+        questions = Collection();
+        question1 = {
+            "name": "buy",
+            "replies": {
+                {
+                    "text": "I can definitely help you with that.Tell me what do you want to buy?"
+                }
+            },
+            "suggestions": {
+                "Mobiles,Computers",
+                "Sports,Fitness,Bags,Luggage",
+                "TV,Appliances,Electronics",
+                "Show all categories"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("showall")) {
+    ans = answers.get("search").get("text");
+    if (ans.equalsIgnoreCase("1")) {
+        data = "Sanyo 108.2cm LED TV -₹29,999";
+    } else if (ans.equalsIgnoreCase("2")) {
+        data = "BPL 109cm LED TV- ₹22,998";
+    } else if (ans.equalsIgnoreCase("3")) {
+        data = "Panasonic 147cm LED TV- ₹23,990";
+    } else if (ans.equalsIgnoreCase("4")) {
+        data = "Sanyo 107.95cm LED TV - ₹23,999";
+    } else if (ans.equalsIgnoreCase("5")) {
+        data = "One plus 6 (Mirror Black, 8GB RAM + 128GB Memory) - ₹39,999";
+    } else if (ans.equalsIgnoreCase("6")) {
+        data = "Moto G5s Plus (Lunar Grey,64GB) - ₹12,998";
+    } else if (ans.equalsIgnoreCase("7")) {
+        data = "Li-Ning Super Force 85 Full Carbon Graphite Badminton Racquet- ₹3,299";
+    } else {
+        data = "Yonex Zr 100 Aluminum Badminton Racquet ₹374-450";
+    }
+    response.put("action", "context");
+    response.put("context_id", "search");
+    questions = Collection();
+    question1 = {
+        "name": "delivery",
+        "replies": {
+            {
+                "text": data
+            },
+            {
+                "text": "Wow! That's a great choice " + data
+            },
+            {
+                "text": "Select delivery option or go for another product"
+            }
+        },
+        "input": {
+            "type": "select",
+            "options": {
+                "choose a location",
+                "currentlocation",
+                "other products"
+            }
+        }
+    };
+    questions.insert(question1);
+    response.put("questions", questions);
+}
+if (context_id.equals("tv")) {
+    ans = answers.get("search").get("text");
+    if (ans.equalsIgnoreCase("1")) {
+        data = "Sanyo 108.2cm LED TV -₹29,999";
+    } else if (ans.equalsIgnoreCase("2")) {
+        data = "BPL 109cm LED TV- ₹22,998";
+    } else if (ans.equalsIgnoreCase("3")) {
+        data = "Panasonic 147cm LED TV- ₹23,990";
+    } else {
+        data = "Sanyo 107.95cm LED TV - ₹23,999";
+    }
+    response.put("action", "context");
+    response.put("context_id", "search");
+    questions = Collection();
+    question1 = {
+        "name": "delivery",
+        "replies": {
+            {
+                "text": data
+            },
+            {
+                "text": "Wow! That's a great choice " + data
+            },
+            {
+                "text": "Select delivery option or go for another product"
+            }
+        },
+        "input": {
+            "type": "select",
+            "options": {
+                "choose a location",
+                "currentlocation",
+                "other products"
+            }
+        }
+    };
+    questions.insert(question1);
+    response.put("questions", questions);
+}
+if (context_id.equals("sports")) {
+    ans = answers.get("search").get("text");
+    if (ans.equalsIgnoreCase("1")) {
+        data = "Li-Ning Super Force 85 Full Carbon Graphite Badminton Racquet- ₹3,299";
+    } else if (ans.equalsIgnoreCase("2")) {
+        data = "Yonex Zr 100 Aluminum Badminton Racquet ₹374-450";
+    } else if (ans.equalsIgnoreCase("3")) {
+        data = "Yonex Gr 303 Badminton Racquet - ₹374-450";
+    } else {
+        data = "Yonex Carbonex Badminton Racquet - ₹139-499";
+    }
+    response.put("action", "context");
+    response.put("context_id", "search");
+    questions = Collection();
+    question1 = {
+        "name": "delivery",
+        "replies": {
+            {
+                "text": data
+            },
+            {
+                "text": "Wow! That's a great choice " + data
+            },
+            {
+                "text": "Select delivery option or go for another product"
+            }
+        },
+        "input": {
+            "type": "select",
+            "options": {
+                "choose a location",
+                "currentlocation",
+                "other products"
+            }
+        }
+    };
+    questions.insert(question1);
+    response.put("questions", questions);
+}
+if (context_id.equals("mobilecomputer")) {
+    ans = answers.get("search").get("text");
+    if (ans.equalsIgnoreCase("1")) {
+        data = "One plus 6 (Mirror Black, 8GB RAM + 128GB Memory) - ₹39,999";
+    } else if (ans.equalsIgnoreCase("2")) {
+        data = "Moto G5s Plus (Lunar Grey,64GB) - ₹12,998";
+    } else if (ans.equalsIgnoreCase("3")) {
+        data = "Huawei Nova 3i (Black 4GB RAM + 128 GB Memory) - ₹20,990";
+    } else {
+        data = "RealMe 1(Diamond Black,6+128 GB) - ₹13,999";
+    }
+    response.put("action", "context");
+    response.put("context_id", "search");
+    questions = Collection();
+    question1 = {
+        "name": "delivery",
+        "replies": {
+            {
+                "text": data
+            },
+            {
+                "text": "Wow! That's a great choice " + data
+            },
+            {
+                "text": "Select delivery option or go for another product"
+            }
+        },
+        "input": {
+            "type": "select",
+            "options": {
+                "choose a location",
+                "currentlocation",
+                "other products"
+            }
+        }
+    };
+    questions.insert(question1);
+    response.put("questions", questions);
+}
+if (context_id.equals("search")) {
+    ans = answers.get("delivery").get("text");
+    if (ans.containsIgnoreCase("choose a location")) {
+        response.put("action", "context");
+        response.put("context_id", "deliverylocation");
+        questions = Collection();
+        question1 = {
+            "name": "address",
+            "replies": {
+                "Please choose an address and confirm the delivery location",
+                {
+                    "text": "1. Chennai-Zoho Corporation Pvt. Ltd., Estancia IT Park, Plot No. 140 & 151, GST Road, Vallancherry Village, Chengalpattu Taluk, Kanchipuram District 603 202, INDIA"
+                },
+                {
+                    "text": " 2.Tenkasi - Zoho Technologies Pvt. Ltd., Silaraipuravu Village, Mathalamparai, Tenkasi, Tirunelveli District 627 814, INDIA "
+                },
+                {
+                    "text": "3.Renigunta - Zoho Technologies Pvt. Ltd., 16-237, Srikalahasti Road, Renigunta Pillapalem, Renigunta, Andhra Pradesh, 517520, INDIA."
+                },
+                {
+                    "text": "Choose address"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "1",
+                    "2",
+                    "3"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("currentlocation")) {
+        response.put("action", "context");
+        response.put("context_id", "currentlocation");
+        questions = Collection();
+        question2 = {
+            "name": "address",
+            "replies": {
+                {
+                    "text": "Address located"
+                }
+            },
+            "input": {
+                "type": "location",
+                "lat": "12.844037",
+                "lng": "80.060411",
+                "label": "Pick a location",
+                "radius": "2 kms"
+            }
+        };
+        questions.insert(question2);
+        response.put("questions", questions);
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "helppurchasing");
+        questions = Collection();
+        question1 = {
+            "name": "buy",
+            "replies": {
+                {
+                    "text": "I can definitely help you with that.Tell me what do you want to buy?"
+                }
+            },
+            "suggestions": {
+                "Mobiles,Computers",
+                "Sports,Fitness,Bags,Luggage",
+                "TV,Appliances,Electronics",
+                "Show all categories"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("currentlocation")) {
+    data = answers.get("address").get("text");
+    response.put("action", "context");
+    response.put("context_id", "currentaddress");
+    questions = Collection();
+    question1 = {
+        "name": "pay",
+        "replies": {
+            {
+                "text": "It will be delivered to the given address " + data
+            }
+        },
+        "input": {
+            "type": "select",
+            "options": {
+                "make payment",
+                "select other"
+            }
+        }
+    };
+    questions.insert(question1);
+    response.put("questions", questions);
+}
+if (context_id.equals("currentaddress")) {
+    ans = answers.get("pay").get("text");
+    if (ans.containsIgnoreCase("make payment")) {
+        response.put("action", "reply");
+        response.put("replies", {
+            {
+                "text": "Payment success"
+            },
+            {
+                "text": "Your order has been placed successfully."
+            }
+        });
+        response.put("input", {
+            "type": "select",
+            "options": {
+                "Continue shopping"
+            }
+        });
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "currentlocation");
+        questions = Collection();
+        question2 = {
+            "name": "address",
+            "replies": {
+                {
+                    "text": "Address located"
+                }
+            },
+            "input": {
+                "type": "location",
+                "lat": "12.844037",
+                "lng": "80.060411",
+                "label": "Pick a location",
+                "radius": "2 kms"
+            }
+        };
+        questions.insert(question2);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("deliverylocation")) {
+    ans = answers.get("address").get("text");
+    if (ans.equalsIgnoreCase("1")) {
+        data = "Chennai-Zoho Corporation Pvt. Ltd., Estancia IT Park, Plot No. 140 & 151, GST Road, Vallancherry Village, Chengalpattu Taluk, Kanchipuram District 603 202, INDIA";
+    } else if (ans.equalsIgnoreCase("2")) {
+        data = "Tenkasi - Zoho Technologies Pvt. Ltd., Silaraipuravu Village, Mathalamparai, Tenkasi, Tirunelveli District 627 814, INDIA ";
+    } else {
+        data = "Renigunta - Zoho Technologies Pvt. Ltd., 16-237, Srikalahasti Road, Renigunta Pillapalem, Renigunta, Andhra Pradesh, 517520, INDIA.";
+    }
+    response.put("action", "context");
+    response.put("context_id", "deliveryadd");
+    questions = Collection();
+    question1 = {
+        "name": "deliveryaddress",
+        "replies": {
+            {
+                "text": "It will be delivered to the given address " + data
+            }
+        },
+        "input": {
+            "type": "select",
+            "options": {
+                "make payment",
+                "select other"
+            }
+        }
+    };
+    questions.insert(question1);
+    response.put("questions", questions);
+}
+if (context_id.equals("deliveryadd")) {
+    ans = answers.get("deliveryaddress").get("text");
+    if (ans.containsIgnoreCase("make payment")) {
+        response.put("action", "reply");
+        response.put("replies", {
+            {
+                "text": "Payment success"
+            },
+            {
+                "text": "Your order has been placed successfully."
+            }
+        });
+        response.put("input", {
+            "type": "select",
+            "options": {
+                "Continue shopping"
+            }
+        });
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "deliverylocation");
+        questions = Collection();
+        question1 = {
+            "name": "address",
+            "replies": {
+                "Please choose an address and confirm the delivery location",
+                {
+                    "text": "1. Chennai-Zoho Corporation Pvt. Ltd., Estancia IT Park, Plot No. 140 & 151, GST Road, Vallancherry Village, Chengalpattu Taluk, Kanchipuram District 603 202, INDIA"
+                },
+                {
+                    "text": " 2.Tenkasi - Zoho Technologies Pvt. Ltd., Silaraipuravu Village, Mathalamparai, Tenkasi, Tirunelveli District 627 814, INDIA "
+                },
+                {
+                    "text": "3.Renigunta - Zoho Technologies Pvt. Ltd., 16-237, Srikalahasti Road, Renigunta Pillapalem, Renigunta, Andhra Pradesh, 517520, INDIA."
+                },
+                {
+                    "text": "Choose address"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "1",
+                    "2",
+                    "3"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("query")) {
+    ans = answers.get("help").get("text");
+    if (ans.containsIgnoreCase("Order status")) {
+        response.put("action", "reply");
+        replies = Collection();
+        replies.insert({
+            "text": "Here is the list of items which is yet to be delivered."
+        });
+        replies.insert({
+            "text": "Fila Men's Ristoro Brown and Beige...-Ordered on 5-sept-2016",
+            "image": "https://cdnd.lystit.com/520/650/n/photos/tillys/5d9c4472/fila-REDCO-Mindbender-F-Mens-Shoes.jpeg"
+        });
+        replies.insert({
+            "text": "Fila Men's Farli Walk Plus 2 Camel...-Ordered on 5-sept-2016",
+            "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSXUFc8VzVd5CEyjpMMt_rtwebkf8Ni1tVIipJHrg8aP9WnvsVH"
+        });
+        replies.insert({
+            "text": "Change by design-Ordered on 26-aug-2016",
+            "image": "https://cityofwater.files.wordpress.com/2011/11/cbd_2_626px.jpg"
+        });
+        replies.insert({
+            "text": "The Practitioner's Guide to User...-Ordered on 26-aug-2016",
+            "image": "https://media.karousell.com/media/photos/products/2016/08/07/the_practitioners_guide_to_user_experience_design_book_the_practitioners_guide_to_user_experience_de_1470584012_8ac3be01.jpg"
+        });
+        response.put("input", {
+            "type": "select",
+            "options": {
+                "Thanks",
+                "Keep shopping"
+            }
+        });
+        response.put("replies", replies);
+    } else if (ans.containsIgnoreCase("Refund not received")) {
+        response.put("action", "reply");
+        replies = Collection();
+        replies.insert({
+            "text": "Let me get the refund policies."
+        });
+        replies.insert({
+            "text": "Returns,Refunds & Replacements"
+        });
+        replies.insert({
+            "text": "Return Items you ordered"
+        });
+        replies.insert({
+            "text": "Return items fulfilled by amazon"
+        });
+        replies.insert({
+            "text": "Return seller fulfilled items"
+        });
+        replies.insert({
+            "text": "Return a gift"
+        });
+        replies.insert({
+            "text": "Track your return"
+        });
+        replies.insert({
+            "text": "About our return policies"
+        });
+        replies.insert({
+            "text": "About return shipping"
+        });
+        replies.insert({
+            "text": "Items that can't be returned"
+        });
+        replies.insert({
+            "text": "Return Documentation"
+        });
+        replies.insert({
+            "text": "Return gift cards"
+        });
+        response.put("input", {
+            "type": "select",
+            "options": {
+                "Thanks",
+                "Keep shopping",
+                "Connect with agent"
+            }
+        });
+        response.put("replies", replies);
+    } else if (ans.containsIgnoreCase("Received a wrong item")) {
+        response.put("action", "context");
+        response.put("context_id", "wrongitem");
+        questions = Collection();
+        question1 = {
+            "name": "list",
+            "replies": {
+                {
+                    "text": "Here is the list of items that were delivered to you. Please choose those item that you would like to return."
+                },
+                {
+                    "text": "1.Fila Men's Ristoro Brown and Beige...-Ordered on 5-sept-2016",
+                    "image": "https://cdnd.lystit.com/520/650/n/photos/tillys/5d9c4472/fila-REDCO-Mindbender-F-Mens-Shoes.jpeg"
+                },
+                {
+                    "text": "2 Fila Men's Farli Walk Plus 2 Camel...-Ordered on 5-sept-2016",
+                    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSXUFc8VzVd5CEyjpMMt_rtwebkf8Ni1tVIipJHrg8aP9WnvsVH"
+                },
+                {
+                    "text": "3.Change by design-Ordered on 26-aug-2016",
+                    "image": "https://cityofwater.files.wordpress.com/2011/11/cbd_2_626px.jpg"
+                },
+                {
+                    "text": "4.The Practitioner's Guide to User...-Ordered on 26-aug-2016",
+                    "image": "https://media.karousell.com/media/photos/products/2016/08/07/the_practitioners_guide_to_user_experience_design_book_the_practitioners_guide_to_user_experience_de_1470584012_8ac3be01.jpg"
+                },
+                {
+                    "text": "Select from above options"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "Connect with agent"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("Connect with agent")) {
+        response.put("action", "end");
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "query");
+        questions = Collection();
+        question1 = {
+            "name": "help",
+            "replies": {
+                {
+                    "text": "What is it that you need help with?"
+                }
+            },
+            "suggestions": {
+                "Order status",
+                "Refund not received",
+                "Received a wrong item",
+                "Connect with agent"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("wrongitem")) {
+    ans = answers.get("list").get("text");
+    if (ans.equalsIgnoreCase("1") || ans.equalsIgnoreCase("2") || ans.equalsIgnoreCase("3") || ans.equalsIgnoreCase("4")) {
+        if (ans.equalsIgnoreCase("1")) {
+            data = "Fila Men's Ristoro Brown and Beige...-Ordered on 5-sept-2016";
+        } else if (ans.equalsIgnoreCase("2")) {
+            data = "Fila Men's Farli Walk Plus 2 Camel...-Ordered on 5-sept-2016";
+        } else if (ans.equalsIgnoreCase("3")) {
+            data = "Change by design-Ordered on 26-aug-2016";
+        } else if (ans.equalsIgnoreCase("4")) {
+            data = "The Practitioner's Guide to User...-Ordered on 26-aug-2016";
+        }
+        response.put("action", "reply");
+        response.put("replies", {
+            {
+                "text": data
+            },
+            {
+                "text": "We are sorry for the inconvenience caused. Your refund has been scheduled. The funds will be credited in 7 working days."
+            }
+        });
+        response.put("input", {
+            "type": "select",
+            "options": {
+                "Thanks",
+                "Keep shopping"
+            }
+        });
+    } else {
+        response.put("action", "end");
+    }
+}
+if (context_id.equals("justbrowsing")) {
+    ans = answers.get("deal").get("text");
+    if (ans.containsIgnoreCase("Deals")) {
+        response.put("action", "context");
+        response.put("context_id", "greatdeals");
+        questions = Collection();
+        question1 = {
+            "name": "greatdeals",
+            "replies": {
+                {
+                    "text": "You got lucky! I have a number of exciting offers for you. Tell me what % discounts are you looking for? It will help me show you the best results."
+                }
+            },
+            "input": {
+                "type": "slider",
+                "values": {
+                    "0",
+                    "10",
+                    "20",
+                    "30",
+                    "70"
+                }
+            }
+        };
+        question2 = {
+            "name": "found",
+            "replies": {
+                {
+                    "text": "I found products you can choose from given options"
+                },
+                {
+                    "text": "1. T-shirts,jeans & more-Min 40% + Extra 10% off UCB,Lee...",
+                    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSd1iHZzkvhYxba0rWl4T9lj-tgEw4od7__pCtZcjXAW4FrdDzd"
+                },
+                {
+                    "text": "2. Bean Bags & More Extra 10% off Budget Friendly Furniture",
+                    "image": "https://5.imimg.com/data5/PE/AS/MY-37550917/gabbroo-bean-bag-brown-500x500.jpeg"
+                },
+                {
+                    "text": "3. Headphones & Speakers From ₹449 F&D,SkullCandy,JVC...",
+                    "image": "https://azcd.harveynorman.com.au/media/catalog/product/cache/21/image/992x558/9df78eab33525d08d6e5fb8d27136e95/b/a/barrel-xl-3696432.jpg"
+                },
+                {
+                    "text": "4. Four Star Dry Irons- upto 70% off From ₹299",
+                    "image": "https://images-na.ssl-images-amazon.com/images/I/71JWeBjxWGL._SX425_.jpg"
+                },
+                {
+                    "text": "Choose a different products or go for given mentioned options"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Choose different%",
+                    "Not interested",
+                    "1",
+                    "2",
+                    "3",
+                    "4"
+                }
+            }
+        };
+        questions.insert(question1);
+        questions.insert(question2);
+        response.put("questions", questions);
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "notify");
+        questions = Collection();
+        question1 = {
+            "name": "email",
+            "replies": {
+                {
+                    "text": "Where can I drop an email with all exciting offers? Please share your email address."
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("notify")) {
+    response.put("action", "end");
+    response.put("replies", {
+        {
+            "text": "Thank you.The offer list with the promo codes is on it's way! Happy shopping!"
+        }
+    });
+}
+return response;

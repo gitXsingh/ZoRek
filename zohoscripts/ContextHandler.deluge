@@ -148,9 +148,66 @@ if(context_id.equals("suggest_context"))
 			}
 			response = Map();
 			response.put("action","reply");
-			response.put("type","multiple-product");
-			response.put("text","Here are some quick " + category + " ideas:");
-			response.put("elements",cardCollection);
+			replies = Collection();
+			introReply = Map();
+			introReply.put("text","Here are some quick " + category + " ideas:");
+			replies.insert(introReply);
+			optionNumbers = Collection();
+			cardIndex = 1;
+			for each card in cardCollection
+			{
+				try
+				{
+					if(card != null)
+					{
+						cardTitle = "";
+						cardSubtitle = "";
+						cardImage = "";
+						if(card.containsKey("title"))
+						{
+							cardTitle = card.get("title").toString();
+						}
+						if(card.containsKey("subtitle"))
+						{
+							cardSubtitle = card.get("subtitle").toString();
+						}
+						if(card.containsKey("image") && card.get("image") != null)
+						{
+							imageVal = card.get("image").toString();
+							if(imageVal != "" && imageVal != null)
+							{
+								cardImage = imageVal;
+							}
+						}
+						replyText = cardIndex.toString() + ". " + cardTitle;
+						if(cardSubtitle != "")
+						{
+							replyText = replyText + " - " + cardSubtitle;
+						}
+						replyMap = Map();
+						replyMap.put("text",replyText);
+						if(cardImage != "")
+						{
+							replyMap.put("image",cardImage);
+						}
+						replies.insert(replyMap);
+						optionNumbers.insert(cardIndex.toString());
+						cardIndex = cardIndex + 1;
+					}
+				}
+				catch(cardErr)
+				{
+					info "🟥 suggest_context fallback card error " + cardErr;
+				}
+			}
+			selectReply = Map();
+			selectReply.put("text","Select from given options");
+			replies.insert(selectReply);
+			response.put("replies",replies);
+			selectInput = Map();
+			selectInput.put("type","select");
+			selectInput.put("options",optionNumbers);
+			response.put("input",selectInput);
 			response.put("suggestions",{"Movies","Books","Games","Food","Music"});
 			hasReturned = true;
 			return response;
@@ -161,10 +218,12 @@ if(context_id.equals("suggest_context"))
 		if(apiResult.containsKey("type") && apiResult.get("type").toString().equalsIgnoreCase("multiple-product") && apiResult.containsKey("elements"))
 		{
 			cardsList = apiResult.get("elements");
+			info "🟦 suggest_context: Found Multiple Product format with " + cardsList.size() + " elements";
 		}
 		else if(apiResult.containsKey("cards"))
 		{
 			cardsList = apiResult.get("cards");
+			info "🟦 suggest_context: Found legacy cards format with " + cardsList.size() + " cards";
 		}
 		if(apiResult.containsKey("text"))
 		{
@@ -174,15 +233,12 @@ if(context_id.equals("suggest_context"))
 			}
 			catch(textErr)
 			{
-				responseText = responseText;
+				responseText = "Here are some " + category + " suggestions.";
 			}
 		}
-		if(cardsList != null)
+		if(cardsList != null && cardsList.size() > 0)
 		{
-			for each rawCard in cardsList
-			{
-				cardCollection.insert(rawCard);
-			}
+			cardCollection = cardsList;
 		}
 
 		info "🟦 suggest_context cards count " + cardCollection.size();
@@ -208,16 +264,73 @@ if(context_id.equals("suggest_context"))
 		{
 			response = Map();
 			response.put("action","reply");
-			response.put("type","multiple-product");
-			response.put("text",responseText);
-			response.put("elements",cardCollection);
+			replies = Collection();
+			introReply = Map();
+			introReply.put("text",responseText);
+			replies.insert(introReply);
+			optionNumbers = Collection();
+			cardIndex = 1;
+			for each card in cardCollection
+			{
+				try
+				{
+					if(card != null)
+					{
+						cardTitle = "";
+						cardSubtitle = "";
+						cardImage = "";
+						if(card.containsKey("title"))
+						{
+							cardTitle = card.get("title").toString();
+						}
+						if(card.containsKey("subtitle"))
+						{
+							cardSubtitle = card.get("subtitle").toString();
+						}
+						if(card.containsKey("image") && card.get("image") != null)
+						{
+							imageVal = card.get("image").toString();
+							if(imageVal != "" && imageVal != null)
+							{
+								cardImage = imageVal;
+							}
+						}
+						replyText = cardIndex.toString() + ". " + cardTitle;
+						if(cardSubtitle != "")
+						{
+							replyText = replyText + " - " + cardSubtitle;
+						}
+						replyMap = Map();
+						replyMap.put("text",replyText);
+						if(cardImage != "")
+						{
+							replyMap.put("image",cardImage);
+						}
+						replies.insert(replyMap);
+						optionNumbers.insert(cardIndex.toString());
+						cardIndex = cardIndex + 1;
+					}
+				}
+				catch(cardErr)
+				{
+					info "🟥 suggest_context card error " + cardErr;
+				}
+			}
+			selectReply = Map();
+			selectReply.put("text","Select from given options");
+			replies.insert(selectReply);
+			response.put("replies",replies);
+			selectInput = Map();
+			selectInput.put("type","select");
+			selectInput.put("options",optionNumbers);
+			response.put("input",selectInput);
 			suggestionOptions = Collection();
 			suggestionOptions.insert("Suggest Something");
 			suggestionOptions.insert("Book an Event");
 			suggestionOptions.insert("My Pick Combo");
 			suggestionOptions.insert("Connect with human");
 			response.put("suggestions",suggestionOptions);
-			info "🟦 suggest_context VALIDATING RESPONSE - action=" + response.get("action") + ", hasElements=" + response.containsKey("elements") + ", cardsCount=" + cardCollection.size() + ", hasSuggestions=" + response.containsKey("suggestions");
+			info "🟦 suggest_context VALIDATING RESPONSE - action=" + response.get("action") + ", hasReplies=" + response.containsKey("replies") + ", repliesCount=" + replies.size() + ", hasSuggestions=" + response.containsKey("suggestions");
 			info "🟦 suggest_context FULL RESPONSE: " + response;
 			hasReturned = true;
 			return response;
@@ -393,9 +506,66 @@ if(context_id.equals("event_context"))
 			
 			response = Map();
 			response.put("action","reply");
-		response.put("type","multiple-product");
-		response.put("text","Here are some quick event links for " + cityValue + ".");
-		response.put("elements",cardCollection);
+		replies = Collection();
+		introReply = Map();
+		introReply.put("text","Here are some quick event links for " + cityValue + ".");
+		replies.insert(introReply);
+		optionNumbers = Collection();
+		cardIndex = 1;
+		for each card in cardCollection
+		{
+			try
+			{
+				if(card != null)
+				{
+					cardTitle = "";
+					cardSubtitle = "";
+					cardImage = "";
+					if(card.containsKey("title"))
+					{
+						cardTitle = card.get("title").toString();
+					}
+					if(card.containsKey("subtitle"))
+					{
+						cardSubtitle = card.get("subtitle").toString();
+					}
+					if(card.containsKey("image") && card.get("image") != null)
+					{
+						imageVal = card.get("image").toString();
+						if(imageVal != "" && imageVal != null)
+						{
+							cardImage = imageVal;
+						}
+					}
+					replyText = cardIndex.toString() + ". " + cardTitle;
+					if(cardSubtitle != "")
+					{
+						replyText = replyText + " - " + cardSubtitle;
+					}
+					replyMap = Map();
+					replyMap.put("text",replyText);
+					if(cardImage != "")
+					{
+						replyMap.put("image",cardImage);
+					}
+					replies.insert(replyMap);
+					optionNumbers.insert(cardIndex.toString());
+					cardIndex = cardIndex + 1;
+				}
+			}
+			catch(cardErr)
+			{
+				info "🟥 event_context fallback card error " + cardErr;
+			}
+		}
+		selectReply = Map();
+		selectReply.put("text","Select from given options");
+		replies.insert(selectReply);
+		response.put("replies",replies);
+		selectInput = Map();
+		selectInput.put("type","select");
+		selectInput.put("options",optionNumbers);
+		response.put("input",selectInput);
 			response.put("suggestions",{"Book an Event","Suggest Something","My Pick Combo","Connect with human"});
 			hasReturned = true;
 			return response;
@@ -422,12 +592,9 @@ if(context_id.equals("event_context"))
 			responseText = responseText;
 		}
 	}
-	if(cardsList != null)
+	if(cardsList != null && cardsList.size() > 0)
 	{
-		for each rawCard in cardsList
-		{
-			cardCollection.insert(rawCard);
-		}
+		cardCollection = cardsList;
 	}
 
 		info "🟩 event_context cards count " + cardCollection.size();
@@ -453,16 +620,73 @@ if(context_id.equals("event_context"))
 		{
 			response = Map();
 			response.put("action","reply");
-			response.put("type","multiple-product");
-			response.put("text",responseText);
-			response.put("elements",cardCollection);
+			replies = Collection();
+			introReply = Map();
+			introReply.put("text",responseText);
+			replies.insert(introReply);
+			optionNumbers = Collection();
+			cardIndex = 1;
+			for each card in cardCollection
+			{
+				try
+				{
+					if(card != null)
+					{
+						cardTitle = "";
+						cardSubtitle = "";
+						cardImage = "";
+						if(card.containsKey("title"))
+						{
+							cardTitle = card.get("title").toString();
+						}
+						if(card.containsKey("subtitle"))
+						{
+							cardSubtitle = card.get("subtitle").toString();
+						}
+						if(card.containsKey("image") && card.get("image") != null)
+						{
+							imageVal = card.get("image").toString();
+							if(imageVal != "" && imageVal != null)
+							{
+								cardImage = imageVal;
+							}
+						}
+						replyText = cardIndex.toString() + ". " + cardTitle;
+						if(cardSubtitle != "")
+						{
+							replyText = replyText + " - " + cardSubtitle;
+						}
+						replyMap = Map();
+						replyMap.put("text",replyText);
+						if(cardImage != "")
+						{
+							replyMap.put("image",cardImage);
+						}
+						replies.insert(replyMap);
+						optionNumbers.insert(cardIndex.toString());
+						cardIndex = cardIndex + 1;
+					}
+				}
+				catch(cardErr)
+				{
+					info "🟥 event_context card error " + cardErr;
+				}
+			}
+			selectReply = Map();
+			selectReply.put("text","Select from given options");
+			replies.insert(selectReply);
+			response.put("replies",replies);
+			selectInput = Map();
+			selectInput.put("type","select");
+			selectInput.put("options",optionNumbers);
+			response.put("input",selectInput);
 			suggestionOptions = Collection();
 			suggestionOptions.insert("Book an Event");
 			suggestionOptions.insert("Suggest Something");
 			suggestionOptions.insert("My Pick Combo");
 			suggestionOptions.insert("Connect with human");
 			response.put("suggestions",suggestionOptions);
-			info "🟩 event_context VALIDATING RESPONSE - action=" + response.get("action") + ", hasElements=" + response.containsKey("elements") + ", cardsCount=" + cardCollection.size() + ", hasSuggestions=" + response.containsKey("suggestions");
+			info "🟩 event_context VALIDATING RESPONSE - action=" + response.get("action") + ", hasReplies=" + response.containsKey("replies") + ", repliesCount=" + replies.size() + ", hasSuggestions=" + response.containsKey("suggestions");
 			info "🟩 event_context FULL RESPONSE: " + response;
 			hasReturned = true;
 			return response;
@@ -653,12 +877,69 @@ if(context_id.equals("combo_context"))
 		cardCollection.insert(foodCard);
 		
 		response = Map();
-		response.put("action","reply");
-	response.put("type","multiple-product");
-	response.put("text","Here is a quick combo based on your picks.");
-	response.put("elements",cardCollection);
+	response.put("action","reply");
+	replies = Collection();
+	introReply = Map();
+	introReply.put("text","Here is a quick combo based on your picks.");
+	replies.insert(introReply);
+	optionNumbers = Collection();
+	cardIndex = 1;
+	for each card in cardCollection
+	{
+		try
+		{
+			if(card != null)
+			{
+				cardTitle = "";
+				cardSubtitle = "";
+				cardImage = "";
+				if(card.containsKey("title"))
+				{
+					cardTitle = card.get("title").toString();
+				}
+				if(card.containsKey("subtitle"))
+				{
+					cardSubtitle = card.get("subtitle").toString();
+				}
+				if(card.containsKey("image") && card.get("image") != null)
+				{
+					imageVal = card.get("image").toString();
+					if(imageVal != "" && imageVal != null)
+					{
+						cardImage = imageVal;
+					}
+				}
+				replyText = cardIndex.toString() + ". " + cardTitle;
+				if(cardSubtitle != "")
+				{
+					replyText = replyText + " - " + cardSubtitle;
+				}
+				replyMap = Map();
+				replyMap.put("text",replyText);
+				if(cardImage != "")
+				{
+					replyMap.put("image",cardImage);
+				}
+				replies.insert(replyMap);
+				optionNumbers.insert(cardIndex.toString());
+				cardIndex = cardIndex + 1;
+			}
+		}
+		catch(cardErr)
+		{
+			info "🟥 combo_context card error " + cardErr;
+		}
+	}
+	selectReply = Map();
+	selectReply.put("text","Select from given options");
+	replies.insert(selectReply);
+	response.put("replies",replies);
+	selectInput = Map();
+	selectInput.put("type","select");
+	selectInput.put("options",optionNumbers);
+	response.put("input",selectInput);
 		response.put("suggestions",{"My Pick Combo","Suggest Something","Book an Event","Connect with human"});
-		info "🟪 combo_context returning response - action=" + response.get("action") + ", cards=" + cardCollection.size();
+		info "🟪 combo_context returning response - action=" + response.get("action") + ", replies=" + replies.size();
 		hasReturned = true;
 		return response;
 	}
@@ -684,12 +965,9 @@ if(apiResult.containsKey("text"))
 		responseText = responseText;
 	}
 }
-if(cardsList != null)
+if(cardsList != null && cardsList.size() > 0)
 {
-	for each rawCard in cardsList
-	{
-		cardCollection.insert(rawCard);
-	}
+	cardCollection = cardsList;
 }
 
 	info "🟪 combo_context cards count " + cardCollection.size();
@@ -715,16 +993,73 @@ if(cardsList != null)
 	{
 		response = Map();
 		response.put("action","reply");
-	response.put("type","multiple-product");
-	response.put("text",responseText);
-	response.put("elements",cardCollection);
+	replies = Collection();
+	introReply = Map();
+	introReply.put("text",responseText);
+	replies.insert(introReply);
+	optionNumbers = Collection();
+	cardIndex = 1;
+	for each card in cardCollection
+	{
+		try
+		{
+			if(card != null)
+			{
+				cardTitle = "";
+				cardSubtitle = "";
+				cardImage = "";
+				if(card.containsKey("title"))
+				{
+					cardTitle = card.get("title").toString();
+				}
+				if(card.containsKey("subtitle"))
+				{
+					cardSubtitle = card.get("subtitle").toString();
+				}
+				if(card.containsKey("image") && card.get("image") != null)
+				{
+					imageVal = card.get("image").toString();
+					if(imageVal != "" && imageVal != null)
+					{
+						cardImage = imageVal;
+					}
+				}
+				replyText = cardIndex.toString() + ". " + cardTitle;
+				if(cardSubtitle != "")
+				{
+					replyText = replyText + " - " + cardSubtitle;
+				}
+				replyMap = Map();
+				replyMap.put("text",replyText);
+				if(cardImage != "")
+				{
+					replyMap.put("image",cardImage);
+				}
+				replies.insert(replyMap);
+				optionNumbers.insert(cardIndex.toString());
+				cardIndex = cardIndex + 1;
+			}
+		}
+		catch(cardErr)
+		{
+			info "🟥 combo_context card error " + cardErr;
+		}
+	}
+	selectReply = Map();
+	selectReply.put("text","Select from given options");
+	replies.insert(selectReply);
+	response.put("replies",replies);
+	selectInput = Map();
+	selectInput.put("type","select");
+	selectInput.put("options",optionNumbers);
+	response.put("input",selectInput);
 		suggestionOptions = Collection();
 		suggestionOptions.insert("My Pick Combo");
 		suggestionOptions.insert("Suggest Something");
 		suggestionOptions.insert("Book an Event");
 		suggestionOptions.insert("Connect with human");
 		response.put("suggestions",suggestionOptions);
-	info "🟪 combo_context VALIDATING RESPONSE - action=" + response.get("action") + ", hasElements=" + response.containsKey("elements") + ", cardsCount=" + cardCollection.size() + ", hasSuggestions=" + response.containsKey("suggestions");
+	info "🟪 combo_context VALIDATING RESPONSE - action=" + response.get("action") + ", hasReplies=" + response.containsKey("replies") + ", repliesCount=" + replies.size() + ", hasSuggestions=" + response.containsKey("suggestions");
 		info "🟪 combo_context FULL RESPONSE: " + response;
 		hasReturned = true;
 		return response;

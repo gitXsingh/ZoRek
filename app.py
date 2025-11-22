@@ -444,8 +444,16 @@ def suggest_music_with_links(query: str = "") -> list[dict]:
     """
     Suggest multiple tracks. Prefer Spotify if OAuth token available, else iTunes.
     Returns list of {text, url, image}
+    Avoids generic terms like "popular" that return songs with that title.
     """
-    q = (query or "popular").strip()
+    # Better default terms that avoid "Popular" spam
+    q = (query or "").strip()
+    if not q or q.lower() in ["popular", "music", "song", "songs"]:
+        # Use diverse artist/term searches to get variety
+        default_terms = ["top hits", "billboard", "ed sheeran", "taylor swift", "the weeknd", "ariana grande"]
+        import random as _random
+        q = _random.choice(default_terms)
+    
     # Try Spotify first
     if ensure_spotify_token() and spotify_token_valid():
         try:
@@ -458,27 +466,40 @@ def suggest_music_with_links(query: str = "") -> list[dict]:
             for t in items:
                 name = t.get("name", "Unknown Track")
                 artists = ", ".join([a.get("name") for a in t.get("artists", [])]) or "Unknown Artist"
+                # Skip generic titles
+                if name.lower() in ["popular", "music", "song"] and not artists:
+                    continue
                 url = (t.get("external_urls") or {}).get("spotify")
                 imgs = ((t.get("album") or {}).get("images") or [])
                 image = imgs[0]["url"] if imgs else None
                 results.append({"text": f"🎵 {name} — {artists}", "url": url, "image": image, "source": "spotify"})
             if results:
-                return results
+                return results[:10]  # Limit to 10
         except Exception:
             pass
     # Fallback iTunes
     try:
         term = q.replace(" ", "+")
-        url = f"https://itunes.apple.com/search?term={term}&entity=song&limit=10"
+        url = f"https://itunes.apple.com/search?term={term}&entity=song&limit=20"
         res = requests.get(url, timeout=8)
         data = res.json()
         results = []
+        seen_titles = set()  # Avoid duplicates
         for track in data.get("results", []):
             track_name = track.get("trackName", "Unknown Track")
             artist = track.get("artistName", "Unknown Artist")
+            # Skip generic titles or duplicates
+            title_key = f"{track_name.lower()}-{artist.lower()}"
+            if track_name.lower() in ["popular", "music", "song"] and len(artist) < 3:
+                continue
+            if title_key in seen_titles:
+                continue
+            seen_titles.add(title_key)
             link = track.get("trackViewUrl") or track.get("collectionViewUrl") or track.get("artistViewUrl")
             img = track.get("artworkUrl100") or track.get("artworkUrl60")
             results.append({"text": f"🎵 {track_name} — {artist}", "url": link, "image": img, "source": "itunes"})
+            if len(results) >= 10:
+                break
         return results or [{"text": "No songs found.", "url": None, "source": "unknown"}]
     except Exception as exc:
         return [{"text": f"⚠️ Music search error: {str(exc)}", "url": None, "source": "error"}]
@@ -840,6 +861,7 @@ def ai_commentary():
 from bot.routes import create_bot_routes
 
 # Register ONLY the 3 required endpoints for Zoho SalesIQ Script Bot
+# Register bot routes with all required API functions
 create_bot_routes(
     app,
     # API functions
@@ -853,6 +875,7 @@ create_bot_routes(
     events_from_seatgeek=events_from_seatgeek,
     fallback_event_links=fallback_event_links,
     geocode_city=geocode_city,
+    fetch_trending_movies=fetch_trending_movies,  # Trending movies fallback
     # Configuration
     SHEET_BEST_URL=SHEET_BEST_URL,
     TMDB_KEY=TMDB_KEY,

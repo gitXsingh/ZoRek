@@ -39,17 +39,21 @@ def normalize(value: str) -> str:
 def make_card(title: str, desc: str = "", img: str = None, label: str = "View", url: str = None, card_id: str = None) -> dict:
     """Create a standardized card object in Zoho Multiple Product format"""
     card_id = card_id or title.lower().replace(" ", "_").replace("(", "").replace(")", "").replace(":", "")[:50]
+    # Ensure URL is always valid - use fallback if None or empty
+    valid_url = url if url and str(url).strip() and str(url).lower() != "null" else "https://zorek.onrender.com"
+    # Ensure image is valid or empty string (not None)
+    valid_image = str(img) if img and str(img).strip() and str(img).lower() != "null" else ""
     return {
         "id": card_id,
         "title": str(title) if title else "No Title",
         "subtitle": str(desc) if desc else "",
-        "image": str(img) if img else "",
+        "image": valid_image,
         "actions": [
             {
                 "label": str(label) if label else "Open",
                 "name": card_id + "_action",
                 "type": "url",
-                "link": str(url) if url else "https://zorek.onrender.com"
+                "link": str(valid_url)
             }
         ]
     }
@@ -178,6 +182,7 @@ def create_bot_routes(
     events_from_seatgeek,
     fallback_event_links,
     geocode_city,
+    fetch_trending_movies,  # Trending movies fallback function
     # Configuration
     SHEET_BEST_URL: str,
     TMDB_KEY: str,
@@ -278,19 +283,37 @@ def create_bot_routes(
                     logger.info(f"Movies API returned {len(items)} items")
                     print(f"   🎬 Movies API returned {len(items)} items")
                     
-                    # Filter out error messages from results
-                    items = [it for it in items if it.get("text") and "No movies matched" not in it.get("text", "") and "error" not in it.get("text", "").lower()]
+                    # Filter out error messages and items without valid URLs
+                    valid_items = []
+                    for it in items:
+                        if not isinstance(it, dict):
+                            continue
+                        text = it.get("text", "")
+                        url = it.get("url")
+                        # Skip error messages and items without valid URLs
+                        if not text or "No movies matched" in text or "⚠️" in text or "error" in text.lower():
+                            continue
+                        if not url or not str(url).strip() or str(url).lower() == "null":
+                            continue
+                        valid_items.append(it)
+                    
+                    items = valid_items
                     logger.info(f"After filtering errors: {len(items)} valid items")
                     print(f"   🎬 After filtering errors: {len(items)} valid items")
                     
-                    # If still no items, try with a generic search
-                    if not items:
-                        logger.info("No items after filtering, trying generic 'movie' search")
-                        print(f"   🎬 No valid items, trying generic search...")
-                        items = search_movies_with_filters("movie", 0.0, "")
-                        items = [it for it in items if it.get("text") and "No movies matched" not in it.get("text", "") and "error" not in it.get("text", "").lower()]
-                        logger.info(f"Generic search returned {len(items)} items")
-                        print(f"   🎬 Generic search returned {len(items)} items")
+                    # If still no items, try with trending movies as fallback
+                    if not items and TMDB_KEY:
+                        logger.info("No items after filtering, trying trending movies fallback")
+                        print(f"   🎬 No valid items, trying trending movies fallback...")
+                        try:
+                            trending = fetch_trending_movies(limit=5)
+                            if trending:
+                                items = trending
+                                logger.info(f"Trending movies fallback returned {len(items)} items")
+                                print(f"   🎬 Trending movies fallback returned {len(items)} items")
+                        except Exception as e:
+                            logger.warning(f"Trending movies fallback failed: {e}")
+                            items = []
                 elif category == "books":
                     subject = normalize(safe_get(prefs, "subject", ""))
                     lang = normalize(safe_get(prefs, "lang", ""))
@@ -339,47 +362,61 @@ def create_bot_routes(
             print(f"   🔄 Transforming {len(items)} items to cards")
             
             for it in (items or [])[:10]:
-                if isinstance(it, dict):
-                    text = safe_get(it, "text", "")
-                    url = safe_get(it, "url")
-                    image = safe_get(it, "image") or safe_get(it, "poster")
-                    
-                    # Clean title from text
-                    title = text.replace("🎬", "").replace("📚", "").replace("🎮", "").replace("🎵", "").replace("🍕", "").strip()
-                    if " — " in title:
-                        title = title.split(" — ")[0].strip()
-                    if "—" in title:
-                        title = title.split("—")[0].strip()
-                    
-                    # Extract description
-                    desc = category.title()
-                    if "⭐" in text:
-                        desc = text.split("⭐")[1].strip() if "⭐" in text else desc
-                    
-                    # Set action label based on category
-                    action_label = "View"
-                    if category == "movies":
-                        action_label = "Watch Now"
-                    elif category == "books":
-                        action_label = "Read More"
-                    elif category == "games":
-                        action_label = "Buy Game"
-                    elif category == "music":
-                        action_label = "Listen"
-                    elif category == "food":
-                        action_label = "View Recipe"
-                    
-                    card = make_card(
-                        title=title[:100] if title else "Unknown",
-                        desc=desc[:200] if desc else category.title(),
-                        img=str(image) if image else None,
-                        label=action_label,
-                        url=str(url) if url else None
-                    )
-                    cards.append(card)
-                    logger.info(f"Created card: {card.get('title', 'Unknown')[:50]}")
-                else:
+                if not isinstance(it, dict):
                     logger.warning(f"Skipping non-dict item: {type(it)}")
+                    continue
+                
+                text = safe_get(it, "text", "")
+                url = safe_get(it, "url")
+                image = safe_get(it, "image") or safe_get(it, "poster")
+                
+                # Skip items without valid text
+                if not text or not text.strip():
+                    continue
+                
+                # Clean title from text
+                title = text.replace("🎬", "").replace("📚", "").replace("🎮", "").replace("🎵", "").replace("🍕", "").strip()
+                if " — " in title:
+                    title = title.split(" — ")[0].strip()
+                if "—" in title:
+                    title = title.split("—")[0].strip()
+                
+                # Extract description - better parsing
+                desc = category.title()
+                if "⭐" in text:
+                    rating_part = text.split("⭐")[1].strip() if "⭐" in text else ""
+                    if rating_part:
+                        desc = rating_part.split("—")[0].strip() if "—" in rating_part else rating_part[:50]
+                elif "·" in text:
+                    desc = text.split("·")[1].strip()[:100] if "·" in text else desc
+                
+                # Set action label based on category
+                action_label = "View"
+                if category == "movies":
+                    action_label = "Watch Now"
+                elif category == "books":
+                    action_label = "Read More"
+                elif category == "games":
+                    action_label = "Buy Game"
+                elif category == "music":
+                    action_label = "Listen"
+                elif category == "food":
+                    action_label = "View Recipe"
+                
+                # Ensure URL is valid - use default if not provided
+                valid_url = url if url and str(url).strip() and str(url).lower() not in ["null", "none"] else None
+                # Ensure image is valid
+                valid_image = str(image) if image and str(image).strip() and str(image).lower() != "null" else None
+                
+                card = make_card(
+                    title=title[:100] if title else "Unknown",
+                    desc=desc[:200] if desc else category.title(),
+                    img=valid_image,
+                    label=action_label,
+                    url=valid_url
+                )
+                cards.append(card)
+                logger.info(f"Created card: {card.get('title', 'Unknown')[:50]} - URL: {bool(card.get('actions', [{}])[0].get('link'))}")
             
             logger.info(f"Created {len(cards)} cards from {len(items)} items")
             print(f"   ✅ Created {len(cards)} cards from {len(items)} items")
@@ -393,16 +430,34 @@ def create_bot_routes(
             print("="*60 + "\n")
             logger.info("="*60)
             
-            # Log (non-blocking)
+            # Log to Google Sheet - Match all columns
             try:
                 if SHEET_BEST_URL:
-                    requests.post(SHEET_BEST_URL, json={
+                    # Extract preferences for logging
+                    genre = normalize(safe_get(prefs, "genre", ""))
+                    mood = normalize(safe_get(prefs, "mood", ""))
+                    
+                    # Get first few suggestions from cards
+                    suggestions_list = [c.get("title", "")[:50] for c in cards[:3]]
+                    
+                    log_data = {
+                        "Name": "",  # Not available from bot endpoint
+                        "Email": "",  # Not available from bot endpoint
+                        "Choice": category.title(),
+                        "Genre": genre if genre else category.title(),
+                        "Mood": mood if mood else "",
+                        "Suggestion": ", ".join(suggestions_list) if suggestions_list else "No suggestions",
                         "Endpoint": "suggest_cards",
-                        "Category": category,
+                        "Category": category.title(),
+                        "Preferences": str(prefs) if prefs else "",
+                        "City": "",
                         "ResultsCount": len(cards),
                         "Timestamp": datetime.datetime.utcnow().isoformat()
-                    }, timeout=3)
-            except Exception:
+                    }
+                    requests.post(SHEET_BEST_URL, json=log_data, timeout=3)
+                    logger.info(f"✅ Logged to sheet: {category.title()} - {len(cards)} results")
+            except Exception as e:
+                logger.warning(f"⚠️ Logging failed: {e}")
                 pass  # Non-blocking
             
             return jsonify(multiple_product_payload(f"Here are some {category.title()} suggestions:", cards))
@@ -532,31 +587,52 @@ def create_bot_routes(
             print(f"   🔄 Transforming {len(results)} event results to cards")
             
             for it in (results or [])[:10]:
-                if isinstance(it, dict):
-                    text = safe_get(it, "text", "")
-                    url = safe_get(it, "url")
-                    image = safe_get(it, "image") or safe_get(it, "poster")
-                    
-                    title = text.replace("🎟️", "").replace("🔎", "").strip()
-                    if "—" in title:
-                        title = title.split("—")[0].strip()
-                    
-                    desc = f"Event in {city.title()}"
-                    if category == "movies":
-                        desc = f"Now Playing in {city.title()}"
-                    elif category == "concerts":
-                        desc = f"Concert in {city.title()}"
-                    
-                    card = make_card(
-                        title=title[:100] if title else "Event",
-                        desc=desc,
-                        img=str(image) if image else None,
-                        label="Book Tickets",
-                        url=str(url) if url else None
-                    )
-                    cards.append(card)
-                    logger.info(f"Created event card: title='{card.get('title', '')[:50]}', url={bool(card.get('action', {}).get('url'))}")
-                    print(f"   ✅ Card: {card.get('title', '')[:50]} - URL: {bool(card.get('action', {}).get('url'))}")
+                if not isinstance(it, dict):
+                    continue
+                
+                text = safe_get(it, "text", "")
+                url = safe_get(it, "url")
+                image = safe_get(it, "image") or safe_get(it, "poster")
+                
+                # Skip items without valid text
+                if not text or not text.strip():
+                    continue
+                
+                title = text.replace("🎟️", "").replace("🔎", "").replace("📅", "").strip()
+                if "—" in title:
+                    title = title.split("—")[0].strip()
+                if " @ " in title:
+                    title = title.split(" @ ")[0].strip()
+                
+                # Better description based on category
+                desc = f"Event in {city.title()}"
+                if category == "movies":
+                    desc = f"Now Playing in {city.title()}"
+                elif category == "concerts":
+                    desc = f"Concert in {city.title()}"
+                elif category == "talkshow":
+                    desc = f"Talk Show in {city.title()}"
+                elif category == "theater":
+                    desc = f"Theater in {city.title()}"
+                elif category == "sports":
+                    desc = f"Sports Event in {city.title()}"
+                
+                # Ensure URL is valid - fallback_event_links should always provide URLs
+                valid_url = url if url and str(url).strip() and str(url).lower() not in ["null", "none"] else None
+                # Ensure image is valid
+                valid_image = str(image) if image and str(image).strip() and str(image).lower() != "null" else None
+                
+                card = make_card(
+                    title=title[:100] if title else "Event",
+                    desc=desc,
+                    img=valid_image,
+                    label="Book Tickets",
+                    url=valid_url
+                )
+                cards.append(card)
+                action_link = card.get('actions', [{}])[0].get('link', '') if card.get('actions') else ''
+                logger.info(f"Created event card: title='{card.get('title', '')[:50]}', url={bool(action_link)}")
+                print(f"   ✅ Card: {card.get('title', '')[:50]} - URL: {bool(action_link)}")
             
             # Ensure cards array is never empty
             if not cards:
@@ -572,17 +648,27 @@ def create_bot_routes(
             print("="*60 + "\n")
             logger.info("="*60)
             
-            # Log (non-blocking)
+            # Log (non-blocking) - Match Google Sheet columns
             try:
                 if SHEET_BEST_URL:
-                    requests.post(SHEET_BEST_URL, json={
+                    log_data = {
+                        "Name": "",  # Not available from bot endpoint
+                        "Email": "",  # Not available from bot endpoint
+                        "Choice": "Book an Event",
+                        "Genre": category.title(),
+                        "Mood": "",
+                        "Suggestion": ", ".join([c.get("title", "")[:50] for c in cards[:3]]),  # First 3 titles
                         "Endpoint": "events_cards",
-                        "Category": category,
-                        "City": city,
+                        "Category": category.title(),
+                        "Preferences": "",
+                        "City": city.title() if city else "",
                         "ResultsCount": len(cards),
                         "Timestamp": datetime.datetime.utcnow().isoformat()
-                    }, timeout=3)
-            except Exception:
+                    }
+                    requests.post(SHEET_BEST_URL, json=log_data, timeout=3)
+                    logger.info(f"✅ Logged to sheet: {category.title()} in {city} - {len(cards)} results")
+            except Exception as e:
+                logger.warning(f"⚠️ Logging failed: {e}")
                 pass  # Non-blocking
             
             return jsonify(response_data)
@@ -763,18 +849,39 @@ def create_bot_routes(
             print(f"   ✅ Output: {len(cards)} cards, movie={bool(movie_result.get('text'))}, song={bool(song_result.get('text'))}, food={bool(food.get('text'))}")
             print("="*60 + "\n")
             
-            # Log (non-blocking)
+            # Log (non-blocking) - Match Google Sheet columns
             try:
                 if SHEET_BEST_URL:
-                    requests.post(SHEET_BEST_URL, json={
+                    # Extract suggestions from cards
+                    suggestions_list = []
+                    if movie_result.get("text"):
+                        movie_title = str(movie_result["text"]).replace("🎬", "").split(" — ")[0].strip()[:50]
+                        suggestions_list.append(f"Movie: {movie_title}")
+                    if song_result.get("text"):
+                        song_title = str(song_result["text"]).replace("🎵", "").split(" — ")[0].strip()[:50]
+                        suggestions_list.append(f"Song: {song_title}")
+                    if food.get("text"):
+                        food_title = str(food["text"]).replace("🍕", "").strip()[:50]
+                        suggestions_list.append(f"Food: {food_title}")
+                    
+                    log_data = {
+                        "Name": "",  # Not available from bot endpoint
+                        "Email": "",  # Not available from bot endpoint
+                        "Choice": "My Pick Combo",
+                        "Genre": movie_genre.title() if movie_genre else "",
+                        "Mood": mood.title() if mood else "",
+                        "Suggestion": " | ".join(suggestions_list),
                         "Endpoint": "recommendations",
-                        "Mood": mood,
-                        "MovieGenre": movie_genre,
-                        "SongType": song_type,
-                        "Diet": diet,
+                        "Category": "Combo",
+                        "Preferences": f"Movie: {movie_genre}, Song: {song_type}, Diet: {diet}",
+                        "City": "",
+                        "ResultsCount": len(cards),
                         "Timestamp": datetime.datetime.utcnow().isoformat()
-                    }, timeout=3)
-            except Exception:
+                    }
+                    requests.post(SHEET_BEST_URL, json=log_data, timeout=3)
+                    logger.info(f"✅ Logged to sheet: Combo - {mood} - {len(cards)} results")
+            except Exception as e:
+                logger.warning(f"⚠️ Logging failed: {e}")
                 pass  # Non-blocking
             
             payload = multiple_product_payload("Your personalized combo is ready!", cards)

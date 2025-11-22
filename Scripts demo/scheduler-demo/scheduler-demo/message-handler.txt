@@ -1,0 +1,105 @@
+
+Copy the below piece of sample code in the Message Handler: 
+
+
+response = Map();
+if (operation.equals("chat")) {
+    // First question from visitor
+    response.put("action", "reply");
+    response.put("replies", {
+        {
+            "text": "Would you like to learn more about how we can help you grow your business?"
+        }
+    });
+    options = {
+        "Yes,I would like to schedule a call ",
+        "No, thanks!"
+    };
+    response.put("suggestions", options);
+} else if (operation.equals("message")) {
+    msg = message.get("text");
+    if (msg.containsIgnoreCase("Yes,I would like to schedule a call")) {
+        response.put("action", "context");
+        response.put("context_id", "telldetails");
+        question1 = {
+            "name": "name",
+            "replies": {
+                "Great ! I just need a few more details to schedule a call",
+                {
+                    "text": "What's your name?"
+                }
+            }
+        };
+        question2 = {
+            "name": "contact",
+            "replies": {
+                {
+                    "text": "Can I have your contact number ? Our representative will call you on this number."
+                }
+            }
+        };
+        question3 = {
+            "name": "company",
+            "replies": {
+                {
+                    "text": "Thanks.Which company do you work for ?"
+                }
+            }
+        };
+        question4 = {
+            "name": "salesrep",
+            "replies": {
+                {
+                    "text": "Our sales representative will call you. Would you like to pick a time slot for your inconvenience?"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Yeah",
+                    "anytime"
+                }
+            }
+        };
+        questions = Collection();
+        questions.insert(question1);
+        questions.insert(question2);
+        questions.insert(question3);
+        questions.insert(question4);
+        response.put("questions", questions);
+    } else if (msg.containsIgnoreCase("No, thanks!")) {
+        response.put("action", "context");
+        response.put("context_id", "nothanks");
+        questions = Collection();
+        question1 = {
+            "name": "newsletter",
+            "replies": {
+                {
+                    "text": "Would you like to receive our newsletter?"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Yeah",
+                    "Nope"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else {
+        response.put("action", "reply");
+        response.put("replies", {
+            {
+                "text": "Would you like to learn more about how we can help you grow your business?"
+            }
+        });
+        options = {
+            "Yes,I would like to schedule a call ",
+            "No, thanks!"
+        };
+        response.put("suggestions", options);
+    }
+}
+return response;

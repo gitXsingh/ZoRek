@@ -1,0 +1,103 @@
+response = Map();
+portal_name = "zylkerinc";
+org_id = "30784977";
+//Number of dates to display
+dateLimits = {"1","2","3","4","5","6","7","8","9","10"};
+//Static timeslots that will be initiatlly available for all days
+staticTimeSlots = {"10:00","12:00","15:00","17:00"};
+daynumbertowords = {"1":"Sunday","2":"Monday","3":"Tuesday","4":"Wednesday","5":"Thursday","6":"Friday","7":"Saturday"};
+monthWordToNumber = {"Jan":"01","Feb":"02","Mar":"03","Apr":"04","May":"05","Jun":"06","Jul":"07","Aug":"08","Sep":"09","Oct":"10","Nov":"11","Dec":"12"};
+//info answers;
+if(context_id.equals("enquiry"))
+{
+	name = answers.get("name").get("text");
+	email = answers.get("email").get("text");
+	company = answers.get("company").get("text");
+	number = answers.get("number").get("text");
+	productname = answers.get("productname").get("text");
+	date = answers.get("date");
+	meta = date.get("meta");
+	card_data = meta.get("card_data");
+	slot = card_data.get("value").get("slot");
+	value = slot.toDateTime();
+	display_time = value.toString("HH:mm");
+	display_date = value.toString("dd-MM-yyy");
+	_date = value.toString("MM-dd-yyy HH:mm:ss");
+	//Event creation
+	paramMap = {'StartDate':_date,"EndDate":_date,"sum":'Call with ' + name};
+	zoho.calendar.createEvent("zillium.pboyle",paramMap);
+	//calendar = zoho.calendar.createEvent("zillium.pboyle",paramMap);
+	//info calendar;
+	//Create new lead
+	leadinfo = {"Last_Name":name,"Email":email};
+	info zoho.crm.createRecord("Leads",leadinfo,Map(),"zoho_crm");
+	response.put("action","end");
+	response.put("replies",{"Excellent! Thank you for choosing our services. We will be glad to be of assistance!"});
+}
+else if(context_id.equals("request"))
+{
+	complaint = answers.get("problem").get("text");
+	email = answers.get("email").get("text");
+	name = answers.get("name").get("text");
+	priority = answers.get("priority").get("text");
+	ticket = {"subject":complaint,"departmentId":"30393000000006907","contactId":"30393000000045035"};
+	ticketinfo = zoho.desk.create(org_id,"tickets",ticket,"zohodesk");
+	info ticketinfo;
+	ticketid = ticketinfo.get("ticketNumber").toLong();
+	response.put("action","end");
+	response.put("replies",{"Your request has been logged and you will hear from us shortly.  The request id is " + ticketid + ". Please quote this id in any future followup."});
+}
+else if(context_id.equals("knowmore"))
+{
+	email = answers.get("email").get("text");
+	sendmail
+	[
+		from :zoho.adminuserid
+		to :email
+		subject :"Welcome"
+		message :"Welcome to Zoho SalesIQ. We are glad to have you on board"
+	]
+	response.put("action","end");
+	response.put("replies",{"You have been added to our mailing list and you will receive all updates on our product(s)!"});
+}
+else if(context_id.equals("checkticket"))
+{
+	requestId = answers.get("requestId").get("text");
+	searchValue = {"ticketNumber":requestId};
+	//-----------------------------------------------------------------------------------------------------------
+	//Search records inside Zoho Desk
+	search_response = zoho.desk.searchRecords(org_id,"tickets",searchValue,0,1,"zohodesk1");
+	info search_response;
+	ticketstatus = search_response.get("data").get("0").get("status");
+	finalOutput = "";
+	info ticketstatus;
+	if(!ticketstatus.isEmpty())
+	{
+		finalOutput = "Sorry, Request Id does not exist";
+		for each  entries in ticketstatus
+		{
+			jsonrequestId = entries.get("Request Id");
+			if(jsonrequestId.equals(requestId))
+			{
+				email = entries.get("Email");
+				status = entries.get("Status");
+				owner = entries.get("Owner");
+				finalOutput = "Email : " + email + " | Owner : " + owner + " | Status : " + status;
+			}
+		}
+	}
+	else
+	{
+		finalOutput = "Sorry. No records exist";
+	}
+	response.put("action","end");
+	response.put("replies",{finalOutput});
+}
+else
+{
+	response.put("action","reply");
+	response.put("replies",{"Hello there!!",{"text":"How can I help you today?"}});
+	response.put("suggestions",{"Product Enquiry and Purchase","I'm an existing customer and I need help","Know more about a product"});
+	return response;
+}
+return response;

@@ -1,0 +1,20 @@
+
+
+Copy the below piece of sample code in the Trigger Handler: 
+
+
+response = Map();
+response.put("action", "reply");
+response.put("replies", {
+    {
+        "text": "Hello, I'm Dr.Bot Phd. in Assistance. Is there anything I can help you with?"
+    }
+});
+response.put("suggestions", {
+    "Admissions",
+    "Courses offered for students",
+    "Events",
+    "About us",
+    "Call the institution"
+});
+return response;

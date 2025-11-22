@@ -1,0 +1,19 @@
+
+
+Copy the below piece of sample code in the Trigger Handler: 
+
+response = Map();
+response.put("action", "reply");
+response.put("replies", {
+    {
+        "text": "Hey! How may I assist you?"
+    }
+});
+options = {
+    "Book a table",
+    "Order online",
+    "Book a room",
+    "Just browsing"
+};
+response.put("suggestions", options);
+return response;

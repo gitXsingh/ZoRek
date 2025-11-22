@@ -1,0 +1,926 @@
+
+Copy the below piece of sample code in the Context Handler: 
+
+response = Map();
+info answers;
+if (context_id.equals("rightrestaurant")) {
+    ans = answers.get("rightrestaurantoptions").get("text");
+    if (ans.containsIgnoreCase("Pick a restaurant near me with my current location")) {
+        response.put("action", "context");
+        response.put("context_id", "pickrestaurant");
+        questions = Collection();
+        question1 = {
+            "name": "map",
+            "replies": {
+                {
+                    "text": "Find restaurant near your current location"
+                }
+            },
+            "input": {
+                "type": "location",
+                "lat": "12.844037",
+                "lng": "80.060411",
+                "label": "Pick a location",
+                "radius": "2 kms"
+            }
+        };
+        question2 = {
+            "name": "options",
+            "replies": {
+                {
+                    "text": "Select from given options"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Book a table",
+                    "choose another"
+                }
+            }
+        };
+        questions.insert(question1);
+        questions.insert(question2);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("show me the list of restaurants")) {
+        response.put("action", "context");
+        response.put("context_id", "showlist");
+        questions = Collection();
+        question1 = {
+            "name": "restaurantoptions",
+            "replies": {
+                "You can choose from these restaurants!",
+                {
+                    "text": "Nearby restaurants"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Restaurant1",
+                    "Restaurant2",
+                    "Restaurant3",
+                    "Restaurant4",
+                    "Restaurant5"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("Connect with an agent")) {
+        response.put("action", "end");
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "rightrestaurant");
+        questions = Collection();
+        question1 = {
+            "name": "rightrestaurantoptions",
+            "replies": {
+                {
+                    "text": "Help me find the right restaurant for you."
+                }
+            },
+            "suggestions": {
+                "Pick a restaurant near me with my current location",
+                "Show me the list of restaurants",
+                "Connect with an agent"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("showlist")) {
+    ans = answers.get("restaurantoptions").get("text");
+    response.put("action", "context");
+    response.put("context_id", "locate");
+    questions = Collection();
+    question1 = {
+        "name": "location",
+        "replies": {
+            {
+                "text": "location of " + ans
+            }
+        },
+        "input": {
+            "type": "location",
+            "lat": "12.844037",
+            "lng": "80.060411",
+            "label": "Pick a location",
+            "radius": "2 kms"
+        }
+    };
+    question2 = {
+        "name": "options",
+        "replies": {
+            {
+                "text": "Select"
+            }
+        },
+        "input": {
+            "type": "select",
+            "options": {
+                "Book a table",
+                "choose another"
+            }
+        }
+    };
+    questions.insert(question1);
+    questions.insert(question2);
+    response.put("questions", questions);
+}
+if (context_id.equals("locate")) {
+    ans = answers.get("options").get("text");
+    if (ans.containsIgnoreCase("Book a table")) {
+        response.put("action", "context");
+        response.put("context_id", "expectedguests");
+        questions = Collection();
+        question1 = {
+            "name": "guests",
+            "replies": {
+                {
+                    "text": "How many guests are we expecting?"
+                }
+            },
+            "input": {
+                "type": "slider",
+                "values": {
+                    "0",
+                    "5",
+                    "10",
+                    "15",
+                    "20"
+                }
+            }
+        };
+        question2 = {
+            "name": "datetime",
+            "replies": {
+                {
+                    "text": "Choose a date and time to make reservations"
+                }
+            },
+            "input": {
+                "type": "date-timeslots",
+                "tz": true,
+                "slots": {
+                    "14/11/2018": {
+                        "11:30",
+                        "15:00",
+                        "15:30",
+                        "16:00",
+                        "16:30",
+                        "17:00",
+                        "17:30",
+                        "18:00",
+                        "18:30"
+                    },
+                    "15/11/2018": {
+                        "11:30",
+                        "15:00",
+                        "15:30",
+                        "16:00",
+                        "16:30",
+                        "17:00",
+                        "17:30",
+                        "18:00",
+                        "18:30"
+                    },
+                    "16/11/2018": {
+                        "11:30",
+                        "15:00",
+                        "15:30",
+                        "16:00",
+                        "16:30",
+                        "17:00",
+                        "17:30",
+                        "18:00",
+                        "18:30"
+                    },
+                    "17/11/2018": {
+                        "11:30",
+                        "15:00",
+                        "15:30",
+                        "16:00",
+                        "16:30",
+                        "17:00",
+                        "17:30",
+                        "18:00",
+                        "18:30"
+                    },
+                    "18/11/2018": {
+                        "11:30",
+                        "15:00",
+                        "15:30",
+                        "16:00",
+                        "16:30",
+                        "17:00",
+                        "17:30",
+                        "18:00",
+                        "18:30"
+                    }
+                }
+            }
+        };
+        questions.insert(question1);
+        questions.insert(question2);
+        response.put("questions", questions);
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "showlist");
+        questions = Collection();
+        question1 = {
+            "name": "restaurantoptions",
+            "replies": {
+                "You can choose from these restaurants!",
+                {
+                    "text": "Nearby restaurants"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Restaurant1",
+                    "Restaurant2",
+                    "Restaurant3",
+                    "Restaurant4",
+                    "Restaurant5"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("pickrestaurant")) {
+    ans = answers.get("options").get("text");
+    if (ans.containsIgnoreCase("Book a table")) {
+        response.put("action", "context");
+        response.put("context_id", "expectedguests");
+        questions = Collection();
+        question1 = {
+            "name": "guests",
+            "replies": {
+                {
+                    "text": "How many guests are we expecting?"
+                }
+            },
+            "input": {
+                "type": "slider",
+                "values": {
+                    "0",
+                    "5",
+                    "10",
+                    "15",
+                    "20"
+                }
+            }
+        };
+        question2 = {
+            "name": "datetime",
+            "replies": {
+                {
+                    "text": "Choose a date and time to make reservations"
+                }
+            },
+            "input": {
+                "type": "date-timeslots",
+                "tz": true,
+                "slots": {
+                    "14/11/2018": {
+                        "11:30",
+                        "15:00",
+                        "15:30",
+                        "16:00",
+                        "16:30",
+                        "17:00",
+                        "17:30",
+                        "18:00",
+                        "18:30"
+                    },
+                    "15/11/2018": {
+                        "11:30",
+                        "15:00",
+                        "15:30",
+                        "16:00",
+                        "16:30",
+                        "17:00",
+                        "17:30",
+                        "18:00",
+                        "18:30"
+                    },
+                    "16/11/2018": {
+                        "11:30",
+                        "15:00",
+                        "15:30",
+                        "16:00",
+                        "16:30",
+                        "17:00",
+                        "17:30",
+                        "18:00",
+                        "18:30"
+                    },
+                    "17/11/2018": {
+                        "11:30",
+                        "15:00",
+                        "15:30",
+                        "16:00",
+                        "16:30",
+                        "17:00",
+                        "17:30",
+                        "18:00",
+                        "18:30"
+                    },
+                    "18/11/2018": {
+                        "11:30",
+                        "15:00",
+                        "15:30",
+                        "16:00",
+                        "16:30",
+                        "17:00",
+                        "17:30",
+                        "18:00",
+                        "18:30"
+                    }
+                }
+            }
+        };
+        questions.insert(question1);
+        questions.insert(question2);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("choose another")) {
+        response.put("action", "context");
+        response.put("context_id", "showlist");
+        questions = Collection();
+        question1 = {
+            "name": "restaurantoptions",
+            "replies": {
+                "You can choose from these restaurants!",
+                {
+                    "text": "Nearby restaurants"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Restaurant1",
+                    "Restaurant2",
+                    "Restaurant3",
+                    "Restaurant4",
+                    "Restaurant5"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+} else if (context_id.equals("expectedguests") || context_id.equals("expectdates")) {
+    if (!answers.get("guests").isNull()) {
+        ans1 = answers.get("guests").get("text");
+        data = " for " + ans1 + " people";
+    } else {
+        data = "";
+    }
+    ans2 = answers.get("datetime").get("text");
+    response.put("action", "context");
+    response.put("context_id", "reservation");
+    questions = Collection();
+    question1 = {
+        "name": "reserved",
+        "replies": {
+            {
+                "text": "Your table has been reserved on " + ans2 + data + " To confirm please provide your contact number"
+            }
+        },
+        "suggestions": {
+            "Choose a different date or time",
+            "skip"
+        }
+    };
+    questions.insert(question1);
+    response.put("questions", questions);
+} else if (context_id.equals("reservation")) {
+    info answers;
+    ans = answers.get("reserved").get("text");
+    if (ans.containsIgnoreCase("Choose a different date or time")) {
+        response.put("action", "context");
+        response.put("context_id", "expectdates");
+        questions = Collection();
+        question2 = {
+            "name": "datetime",
+            "replies": {
+                {
+                    "text": "Choose a date and time to make reservations"
+                }
+            },
+            "input": {
+                "type": "date-timeslots",
+                "tz": true,
+                "slots": {
+                    "14/11/2018": {
+                        "11:30",
+                        "15:00",
+                        "15:30",
+                        "16:00",
+                        "16:30",
+                        "17:00",
+                        "17:30",
+                        "18:00",
+                        "18:30"
+                    },
+                    "15/11/2018": {
+                        "11:30",
+                        "15:00",
+                        "15:30",
+                        "16:00",
+                        "16:30",
+                        "17:00",
+                        "17:30",
+                        "18:00",
+                        "18:30"
+                    },
+                    "16/11/2018": {
+                        "11:30",
+                        "15:00",
+                        "15:30",
+                        "16:00",
+                        "16:30",
+                        "17:00",
+                        "17:30",
+                        "18:00",
+                        "18:30"
+                    },
+                    "17/11/2018": {
+                        "11:30",
+                        "15:00",
+                        "15:30",
+                        "16:00",
+                        "16:30",
+                        "17:00",
+                        "17:30",
+                        "18:00",
+                        "18:30"
+                    },
+                    "18/11/2018": {
+                        "11:30",
+                        "15:00",
+                        "15:30",
+                        "16:00",
+                        "16:30",
+                        "17:00",
+                        "17:30",
+                        "18:00",
+                        "18:30"
+                    }
+                }
+            }
+        };
+        questions.insert(question2);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("skip")) {
+        response.put("action", "reply");
+        response.put("replies", {
+            {
+                "text": "Hey! How may I assist you?"
+            }
+        });
+        options = {
+            "Book a table",
+            "Order online",
+            "Book a room",
+            "Just browsing"
+        };
+        response.put("suggestions", options);
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "confirmationtable");
+        questions = Collection();
+        question1 = {
+            "name": "tableconfirmation",
+            "replies": {
+                {
+                    "text": "Your table is confirmed."
+                }
+            },
+            "input": {
+                "type": "location",
+                "lat": "12.844037",
+                "lng": "80.060411",
+                "label": "Pick a location",
+                "radius": "2 kms"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("confirmationtable")) {
+    response.put("action", "reply");
+    response.put("replies", {
+        {
+            "text": "Location for your restaurant given"
+        }
+    });
+    response.put("input", {
+        "type": "select",
+        "options": {
+            "Thank you",
+            "Remind me later"
+        }
+    });
+}
+if (context_id.equals("orderonline")) {
+    response.put("action", "context");
+    response.put("context_id", "todayfood");
+    questions = Collection();
+    question1 = {
+        "name": "chefspl",
+        "replies": {
+            {
+                "text": "Great! Here's our chef special"
+            }
+        },
+        "input": {
+            "type": "multiple-select",
+            "options": {
+                "Dish1-Quantity",
+                "Dish2-Quantity",
+                "Dish3-Quantity",
+                "Dish4-Quantity",
+                "Dish5-Quantity"
+            }
+        }
+    };
+    question2 = {
+        "name": "taste",
+        "replies": {
+            "Wow! You've got a great taste.",
+            {
+                "text": "It will be $34.54. Select your delivery address or change the order"
+            }
+        },
+        "input": {
+            "type": "select",
+            "options": {
+                "Choose a location",
+                "currentlocation",
+                "Change order"
+            }
+        }
+    };
+    questions.insert(question1);
+    questions.insert(question2);
+    response.put("questions", questions);
+}
+if (context_id.equals("todayfood")) {
+    ans = answers.get("taste").get("text");
+    ans1 = answers.get("chefspl").get("text");
+    if (ans.containsIgnoreCase("Choose a location")) {
+        response.put("action", "context");
+        response.put("context_id", "deliverylocation");
+        questions = Collection();
+        question1 = {
+            "name": "address",
+            "replies": {
+                "Please choose an address and confirm the delivery location",
+                {
+                    "text": "1. Chennai-Zoho Corporation Pvt. Ltd., Estancia IT Park, Plot No. 140 & 151, GST Road, Vallancherry Village, Chengalpattu Taluk, Kanchipuram District 603 202, INDIA"
+                },
+                {
+                    "text": " 2.Tenkasi - Zoho Technologies Pvt. Ltd., Silaraipuravu Village, Mathalamparai, Tenkasi, Tirunelveli District 627 814, INDIA "
+                },
+                {
+                    "text": "3.Renigunta - Zoho Technologies Pvt. Ltd., 16-237, Srikalahasti Road, Renigunta Pillapalem, Renigunta, Andhra Pradesh, 517520, INDIA."
+                },
+                {
+                    "text": "Choose address"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "1",
+                    "2",
+                    "3"
+                }
+            }
+        };
+        question2 = {
+            "name": "confirmedorder",
+            "replies": {
+                {
+                    "text": "Your order of " + ans1 + " is $34.54. Please confirm it."
+                }
+            }
+        };
+        questions.insert(question1);
+        questions.insert(question2);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("currentlocation")) {
+        response.put("action", "context");
+        response.put("context_id", "currentlocation");
+        questions = Collection();
+        question2 = {
+            "name": "address",
+            "replies": {
+                {
+                    "text": "Address located"
+                }
+            },
+            "input": {
+                "type": "location",
+                "lat": "12.844037",
+                "lng": "80.060411",
+                "label": "Pick a location",
+                "radius": "2 kms"
+            }
+        };
+        question1 = {
+            "name": "order",
+            "replies": {
+                {
+                    "text": "Your order of " + ans1 + "is $34.54. Please confirm it."
+                }
+            }
+        };
+        questions.insert(question1);
+        questions.insert(question2);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("Change order")) {
+        response.put("action", "context");
+        response.put("context_id", "orderonline");
+        questions = Collection();
+        question1 = {
+            "name": "today_food",
+            "replies": {
+                {
+                    "text": "What would you like to have today?"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Continental",
+                    "Asian",
+                    "FastFood",
+                    "Deserts"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("currentlocation")) {
+    ans = answers.get("address").get("text");
+    response.put("action", "context");
+    response.put("context_id", "currentlocationoptions");
+    questions = Collection();
+    question1 = {
+        "name": "deliverylocation",
+        "replies": {
+            {
+                "text": "It will delivered to " + ans
+            }
+        },
+        "input": {
+            "type": "select",
+            "options": {
+                "make a payment",
+                "other address"
+            }
+        }
+    };
+    questions.insert(question1);
+    response.put("questions", questions);
+}
+if (context_id.equals("currentlocationoptions")) {
+    ans = answers.get("deliverylocation").get("text");
+    if (ans.containsIgnoreCase("make a payment")) {
+        response.put("action", "reply");
+        response.put("replies", {
+            {
+                "text": "Payment Success"
+            },
+            {
+                "text": "Thank you.Your order has been received and will be delivered"
+            }
+        });
+        response.put("input", {
+            "type": "select",
+            "options": {
+                "Call restaurant",
+                "chat with agent"
+            }
+        });
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "currentlocation");
+        questions = Collection();
+        question1 = {
+            "name": "address",
+            "replies": {
+                {
+                    "text": "Address located"
+                }
+            },
+            "input": {
+                "type": "location",
+                "lat": "12.844037",
+                "lng": "80.060411",
+                "label": "Pick a location",
+                "radius": "2 kms"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("deliverylocation")) {
+    ans = answers.get("address").get("text");
+    if (ans.equalsIgnoreCase("1")) {
+        data = " Chennai-Zoho Corporation Pvt. Ltd., Estancia IT Park, Plot No. 140 & 151, GST Road, Vallancherry Village, Chengalpattu Taluk, Kanchipuram District 603 202, INDIA";
+    } else if (ans.equalsIgnoreCase("2")) {
+        data = "Tenkasi - Zoho Technologies Pvt. Ltd., Silaraipuravu Village, Mathalamparai, Tenkasi, Tirunelveli District 627 814, INDIA";
+    } else {
+        data = "Renigunta - Zoho Technologies Pvt. Ltd., 16-237, Srikalahasti Road, Renigunta Pillapalem, Renigunta, Andhra Pradesh, 517520, INDIA.";
+    }
+    response.put("action", "context");
+    response.put("context_id", "deliveryaddress");
+    questions = Collection();
+    question1 = {
+        "name": "options",
+        "replies": {
+            {
+                "text": "It will be delivered to " + data
+            }
+        },
+        "input": {
+            "type": "select",
+            "options": {
+                "make payment",
+                "other address"
+            }
+        }
+    };
+    questions.insert(question1);
+    response.put("questions", questions);
+}
+if (context_id.equals("deliveryaddress")) {
+    ans = answers.get("options").get("text");
+    if (ans.containsIgnoreCase("make payment")) {
+        response.put("action", "reply");
+        response.put("replies", {
+            {
+                "text": "Payment Success"
+            },
+            {
+                "text": "Thank you.Your order has been received and will be delivered"
+            }
+        });
+        response.put("input", {
+            "type": "select",
+            "options": {
+                "Call restaurant",
+                "chat with agent"
+            }
+        });
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "deliverylocation");
+        questions = Collection();
+        question1 = {
+            "name": "address",
+            "replies": {
+                "Please choose an address and confirm the delivery location",
+                {
+                    "text": "1. Chennai-Zoho Corporation Pvt. Ltd., Estancia IT Park, Plot No. 140 & 151, GST Road, Vallancherry Village, Chengalpattu Taluk, Kanchipuram District 603 202, INDIA"
+                },
+                {
+                    "text": " 2.Tenkasi - Zoho Technologies Pvt. Ltd., Silaraipuravu Village, Mathalamparai, Tenkasi, Tirunelveli District 627 814, INDIA "
+                },
+                {
+                    "text": "3.Renigunta - Zoho Technologies Pvt. Ltd., 16-237, Srikalahasti Road, Renigunta Pillapalem, Renigunta, Andhra Pradesh, 517520, INDIA."
+                },
+                {
+                    "text": "Choose address"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "1",
+                    "2",
+                    "3"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("bookroom")) {
+    ans = answers.get("checkdates").get("text");
+    if (ans.equalsIgnoreCase("-")) {
+        response.put("action", "reply");
+        response.put("replies", {
+            {
+                "text": "Hey! How may I assist you?"
+            }
+        });
+        options = {
+            "Book a table",
+            "Order online",
+            "Book a room",
+            "Just browsing"
+        };
+        response.put("suggestions", options);
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "schedule");
+        questions = Collection();
+        question1 = {
+            "name": "details",
+            "replies": {
+                {
+                    "text": "Please share your email address and contact number.We will send you a confirmation email."
+                }
+            }
+        };
+        question2 = {
+            "name": "paymentstatus",
+            "replies": {
+                {
+                    "text": "Please make the payment to complete your booking."
+                }
+            }
+        };
+        questions.insert(question1);
+        questions.insert(question2);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("schedule")) {
+    response.put("action", "end");
+    response.put("replies", {
+        {
+            "text": "Your booking has been confirmed.Please check your inbox for more details."
+        }
+    });
+}
+if (context_id.equals("justbrowsing")) {
+    ans = answers.get("services").get("text");
+    if (ans.containsIgnoreCase("Offers")) {
+        response.put("action", "context");
+        response.put("context_id", "offeroption");
+        questions = Collection();
+        question1 = {
+            "name": "offers",
+            "replies": {
+                {
+                    "text": "You are lucky! We have some exciting offers for you. Shall I share the list of hotels with offers?"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Send the list",
+                    "No thanks"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else {
+        response.put("action", "end");
+    }
+}
+if (context_id.equals("offeroption")) {
+    ans = answers.get("offers").get("text");
+    if (ans.containsIgnoreCase("Send the list")) {
+        response.put("action", "context");
+        response.put("context_id", "mailaddress");
+        questions = Collection();
+        question1 = {
+            "name": "email",
+            "replies": {
+                {
+                    "text": "Please share your email address where you would like to receive the list.Don't worry,we hate spam as much as you do. :)"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else {
+        response.put("action", "end");
+    }
+}
+if (context_id.equals("mailaddress")) {
+    response.put("action", "end");
+    response.put("replies", {
+        {
+            "text": "Thank you! The list of offers with the promo code is on the way."
+        }
+    });
+}
+return response;

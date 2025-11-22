@@ -1,0 +1,13 @@
+How to use the sample script to add a bot in Zoho SalesIQ? 
+
+* Login to Zoho SalesIQ.
+* Navigate to Settings > Bots, click  Add bot.
+* Provide your bot with a name and description. 
+* Choose a website for your bot and then associate departments.
+* Then, choose SalesIQ Script. 
+* Now,  Choose the Message Handler from the drop-down at the top left corner. Copy-paste the code provided in the message handler text file and click Create.
+*Then, choose Context Handler from the drop-down and copy-paste the script available in the context handler text file and click save.
+*Finally, choose Trigger Handler from the drop-down and copy-paste the script from the trigger handler text file and click save.
+* Then Publish your sample bot. Your sample bot is now ready to assist!  
+
+

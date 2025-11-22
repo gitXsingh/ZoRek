@@ -1,0 +1,5 @@
+response = Map();
+response.put("action","reply");
+response.put("replies",{"Hello there!!","How can I help you today?"});
+response.put("suggestions",{"Product Enquiry and Purchase","I'm an existing customer and I need help","Know more about a product"});
+return response;

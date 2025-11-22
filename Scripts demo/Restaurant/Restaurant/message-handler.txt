@@ -1,0 +1,177 @@
+
+Copy the below piece of sample code in the Message Handler: 
+
+
+response = Map();
+if (operation.equals("chat")) {
+    // First question from visitor
+    response.put("action", "reply");
+    response.put("replies", {
+        {
+            "text": "Hey! How may I assist you?"
+        }
+    });
+    options = {
+        "Book a table",
+        "Order online",
+        "Book a room",
+        "Just browsing"
+    };
+    response.put("suggestions", options);
+} else if (operation.equals("message")) {
+    msg = message.get("text");
+    if (msg.containsIgnoreCase("Book a table")) {
+        response.put("action", "context");
+        response.put("context_id", "rightrestaurant");
+        questions = Collection();
+        question1 = {
+            "name": "rightrestaurantoptions",
+            "replies": {
+                {
+                    "text": "Help me find the right restaurant for you."
+                }
+            },
+            "suggestions": {
+                "Pick a restaurant near me with my current location",
+                "Show me the list of restaurants",
+                "Connect with an agent"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (msg.containsIgnoreCase("Order online")) {
+        response.put("action", "context");
+        response.put("context_id", "orderonline");
+        questions = Collection();
+        question1 = {
+            "name": "today_food",
+            "replies": {
+                {
+                    "text": "What would you like to have today?"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Continental",
+                    "Asian",
+                    "FastFood",
+                    "Deserts"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (msg.containsIgnoreCase("Book a room")) {
+        response.put("action", "context");
+        response.put("context_id", "bookroom");
+        questions = Collection();
+        question1 = {
+            "name": "stay",
+            "replies": {
+                {
+                    "text": "I can help you with that.Where would you like to stay?"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Hotel 1",
+                    "Hotel 2",
+                    "Hotel 3"
+                }
+            }
+        };
+        question2 = {
+            "name": "peoplevisits",
+            "replies": {
+                {
+                    "text": "How many people will be visiting?"
+                }
+            },
+            "input": {
+                "type": "slider",
+                "values": {
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5"
+                }
+            }
+        };
+        question3 = {
+            "name": "rooms",
+            "replies": {
+                {
+                    "text": "How many rooms would you like to book?"
+                }
+            },
+            "input": {
+                "type": "slider",
+                "values": {
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5"
+                }
+            }
+        };
+        question4 = {
+            "name": "checkdates",
+            "replies": {
+                {
+                    "text": "Great choice! Choose check-in and check-out dates"
+                }
+            },
+            "input": {
+                "type": "calendar",
+                "skippable": true
+            }
+        };
+        questions.insert(question1);
+        questions.insert(question2);
+        questions.insert(question3);
+        questions.insert(question4);
+        response.put("questions", questions);
+    } else if (msg.containsIgnoreCase("Just browsing")) {
+        response.put("action", "context");
+        response.put("context_id", "justbrowsing");
+        questions = Collection();
+        question1 = {
+            "name": "services",
+            "replies": {
+                {
+                    "text": "Great ! Enjoy looking around. Let me know more if you want to know more about offers and services"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "Offers",
+                    "Not now"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (msg.equalsIgnoreCase("Thank you") || msg.equalsIgnoreCase("Remind me later") || msg.equalsIgnoreCase("Call restaurant") || msg.equalsIgnoreCase("chat with agent")) {
+        response.put("action", "end");
+    } else {
+        response.put("action", "reply");
+        response.put("replies", {
+            {
+                "text": "Hey! How may I assist you?"
+            }
+        });
+        options = {
+            "Book a table",
+            "Order online",
+            "Book a room",
+            "Just browsing"
+        };
+        response.put("suggestions", options);
+    }
+}
+return response;

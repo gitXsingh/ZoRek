@@ -1,0 +1,20 @@
+Copy the below piece of sample code in the Trigger Handler: 
+
+
+response = Map();
+response.put("action", "reply");
+response.put("replies", {
+    {
+        "text": "Don't worry. Help is on the way"
+    },
+    {
+        "text": "Which areas are you trying to improve?"
+    }
+});
+options = {
+    "Chat with sales",
+    "Chat with support",
+    "Just browsing"
+};
+response.put("suggestions", options);
+return response;

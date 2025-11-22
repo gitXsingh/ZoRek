@@ -1,0 +1,683 @@
+
+Copy the below piece of sample code in the Context Handler: 
+
+response = Map();
+if (context_id.equals("admissions")) {
+    ans = answers.get("options").get("text");
+    if (ans.containsIgnoreCase("Undergraduate") || ans.containsIgnoreCase("Postgraduate")) {
+        response.put("action", "context");
+        response.put("context_id", "graduate");
+        questions = Collection();
+        question1 = {
+            "name": "applyoptions",
+            "replies": {
+                {
+                    "text": "That's nice. What would you like to know about?"
+                }
+            },
+            "suggestions": {
+                "Courses offered",
+                "Admission Cycles",
+                "How to apply"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("Continuing Education")) {
+        response.put("action", "context");
+        response.put("context_id", "continuingeducation");
+        questions = Collection();
+        question1 = {
+            "name": "email",
+            "replies": {
+                {
+                    "text": "Please provide your email address so that we can reach you."
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "admissions");
+        questions = Collection();
+        question1 = {
+            "name": "options",
+            "replies": {
+                {
+                    "text": "Nice to meet you! What are you looking for?"
+                }
+            },
+            "suggestions": {
+                "Undergraduate",
+                "Postgraduate",
+                "Continuing Education"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("attendevent")) {
+    ans = answers.get("email").get("text");
+    if (ans.containsIgnoreCase("Choose another event")) {
+        response.put("action", "reply");
+        replies = Collection();
+        // sample events text with title and exhibiton details
+        //replies.insert({"text":"Put ur events details with time"});
+        replies.insert({
+            "text": "a. Settlers - Museum of Natural History - Exhibitions | 9 Feb 2018 to 16 Sept 2018"
+        });
+        replies.insert({
+            "text": "b. The tale of Prince Vessantara - Ashmolean museum - Exhibitions | 9 Feb 2018 to 16 Sept 2018 "
+        });
+        replies.insert({
+            "text": "c. A century of women in Chinese Art - Ashmolean museum - Exhibitions | 9 Feb 2018 to 16 Sept 2018 "
+        });
+        replies.insert({
+            "text": "d. Women in Science - museum of history of science - Exhibitions | 9 Feb 2018 to 16 Sept 2018 "
+        });
+        replies.insert({
+            "text": "e. Five paintings & a taste for art at the court of charles I - Christ Church Picture Gallery- Exhibitions | 9 Feb 2018 to 16 Sept 2018 "
+        });
+        replies.insert({
+            "text": "f. Portrait of a building - Christ Church Picture Gallery - Exhibitions | 9 Feb 2018 to 16 Sept 2018 "
+        });
+        response.put("replies", replies);
+        response.put("suggestions", {
+            "Email the list of events",
+            "Subscribe to our event calendar",
+            "Select from above"
+        });
+    } else if (ans.containsIgnoreCase("Cancel")) {
+        response.put("action", "end");
+    } else {
+        response.put("action", "end");
+        response.put("replies", {
+            {
+                "text": "Thank you. Please check your inbox for entry please."
+            }
+        });
+    }
+}
+if (context_id.equals("studentcourses")) {
+    ans = answers.get("options").get("text");
+    if (ans.containsIgnoreCase("Undergraduate") || ans.containsIgnoreCase("Postgraduate")) {
+        response.put("action", "reply");
+        replies = Collection();
+        replies.insert({
+            "text": "That's nice. It's always a pleasure to meet new aspirants! Here's the list of courses offered"
+        });
+        replies.insert({
+            "text": " 1. African Studies MSc - Full time - 9 months"
+        });
+        replies.insert({
+            "text": " 2. Ancient History DPhil - Full time - 3 years"
+        });
+        replies.insert({
+            "text": " 3. Ancient History DPhil - Parttime - 6-8 years"
+        });
+        replies.insert({
+            "text": " 4. Ancient Philosophy Mst - Full time - 9 months"
+        });
+        replies.insert({
+            "text": " 5. Anthropology DPhil - Full time - 3-4 years"
+        });
+        replies.insert({
+            "text": " 6.	Applied Landscape Archaeology Msc - Part time - 2 years"
+        });
+        replies.insert({
+            "text": " 7. Connect me to the institute"
+        });
+        replies.insert({
+            "text": "Select your option"
+        });
+        response.put("replies", replies);
+        response.put("input", {
+            "type": "select",
+            "options": {
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7"
+            }
+        });
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "studentcourses");
+        questions = Collection();
+        question1 = {
+            "name": "options",
+            "replies": {
+                {
+                    "text": "What are you looking for?"
+                }
+            },
+            "suggestions": {
+                "Undergraduate",
+                "Postgraduate"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("graduate")) {
+    ans = answers.get("applyoptions").get("text");
+    if (ans.containsIgnoreCase("Courses offered")) {
+        response.put("action", "reply");
+        replies = Collection();
+        replies.insert({
+            "text": "That's nice. It's always a pleasure to meet new aspirants! Here's the list of courses offered"
+        });
+        replies.insert({
+            "text": " 1. African Studies MSc - Full time - 9 months"
+        });
+        replies.insert({
+            "text": " 2. Ancient History DPhil - Full time - 3 years"
+        });
+        replies.insert({
+            "text": " 3. Ancient History DPhil - Parttime - 6-8 years"
+        });
+        replies.insert({
+            "text": " 4. Ancient Philosophy Mst - Full time - 9 months"
+        });
+        replies.insert({
+            "text": " 5. Anthropology DPhil - Full time - 3-4 years"
+        });
+        replies.insert({
+            "text": " 6.	Applied Landscape Archaeology Msc - Part time - 2 years"
+        });
+        replies.insert({
+            "text": " 7. Connect me to the institute"
+        });
+        replies.insert({
+            "text": "Select your option"
+        });
+        response.put("replies", replies);
+        response.put("input", {
+            "type": "select",
+            "options": {
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7"
+            }
+        });
+    } else if (ans.containsIgnoreCase("Admission Cycles")) {
+        response.put("action", "context");
+        response.put("context_id", "admissioncycles");
+        questions = Collection();
+        question1 = {
+            "name": "cycles",
+            "replies": {
+                {
+                    "text": "We have two admission cycles"
+                }
+            },
+            "input": {
+                "type": "select",
+                "options": {
+                    "September",
+                    "June"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("How to apply")) {
+        response.put("action", "context");
+        response.put("context_id", "howtoapply");
+        questions = Collection();
+        question1 = {
+            "name": "apply",
+            "replies": {
+                {
+                    "text": "It's simple to apply online.Just follow the instructions."
+                }
+            },
+            "suggestions": {
+                "Apply Online",
+                "Read through the instructions"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "graduate");
+        questions = Collection();
+        question1 = {
+            "name": "applyoptions",
+            "replies": {
+                {
+                    "text": "That's nice. What would you like to know about?"
+                }
+            },
+            "suggestions": {
+                "Courses offered",
+                "Admission Cycles",
+                "How to apply"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("howtoapply")) {
+    ans = answers.get("apply").get("text");
+    if (ans.containsIgnoreCase("Apply Online")) {
+        response.put("action", "context");
+        response.put("context_id", "applyonline");
+        questions = Collection();
+        question1 = {
+            "name": "goodname",
+            "replies": {
+                {
+                    "text": "What's your good name?"
+                }
+            },
+            "suggestions": {
+                "Check other courses",
+                "Cancel"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("Read through the instructions")) {
+        response.put("action", "reply");
+        replies = Collection();
+        replies.insert({
+            "text": "Applying to Oxford"
+        });
+        replies.insert({
+            "text": "Application Guide"
+        });
+        replies.insert({
+            "text": "Application with disabilities"
+        });
+        replies.insert({
+            "text": "Information for referees"
+        });
+        replies.insert({
+            "text": "University policies"
+        });
+        response.put("replies", replies);
+        response.put("suggestions", {
+            "Courses offered",
+            "Email the instructions"
+        });
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "howtoapply");
+        questions = Collection();
+        question1 = {
+            "name": "apply",
+            "replies": {
+                {
+                    "text": "It's simple to apply online.Just follow the instructions."
+                }
+            },
+            "suggestions": {
+                "Apply Online",
+                "Read through the instructions"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("admissioncycles")) {
+    ans = answers.get("cycles").get("text");
+    if (ans.containsIgnoreCase("September")) {
+        response.put("action", "reply");
+        replies = Collection();
+        replies.insert({
+            "text": "That's nice. It's always a pleasure to meet new aspirants! Here's the list of courses offered"
+        });
+        replies.insert({
+            "text": " 1. African Studies MSc - Full time - 9 months"
+        });
+        replies.insert({
+            "text": " 2. Ancient History DPhil - Full time - 3 years"
+        });
+        replies.insert({
+            "text": " 3. Ancient History DPhil - Parttime - 6-8 years"
+        });
+        replies.insert({
+            "text": " 4. Ancient Philosophy Mst - Full time - 9 months"
+        });
+        replies.insert({
+            "text": " 5. Anthropology DPhil - Full time - 3-4 years"
+        });
+        replies.insert({
+            "text": " 6.	Applied Landscape Archaeology Msc - Part time - 2 years"
+        });
+        replies.insert({
+            "text": " 7. Connect me to the institute"
+        });
+        replies.insert({
+            "text": "Select your option"
+        });
+        response.put("replies", replies);
+        response.put("input", {
+            "type": "select",
+            "options": {
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7"
+            }
+        });
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "june");
+        questions = Collection();
+        question1 = {
+            "name": "notified",
+            "replies": {
+                {
+                    "text": "We are sorry. Admissions for june are closed today.Would you like to get notified when admissions are open?"
+                }
+            },
+            "suggestions": {
+                "Show me the courses available for current year",
+                "Please notify me",
+                "No,thanks"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("june")) {
+    ans = answers.get("notified").get("text");
+    if (ans.containsIgnoreCase("Show me the courses available for current year")) {
+        response.put("action", "reply");
+        replies = Collection();
+        replies.insert({
+            "text": "That's nice. It's always a pleasure to meet new aspirants! Here's the list of courses offered"
+        });
+        replies.insert({
+            "text": " 1. African Studies MSc - Full time - 9 months"
+        });
+        replies.insert({
+            "text": " 2. Ancient History DPhil - Full time - 3 years"
+        });
+        replies.insert({
+            "text": " 3. Ancient History DPhil - Parttime - 6-8 years"
+        });
+        replies.insert({
+            "text": " 4. Ancient Philosophy Mst - Full time - 9 months"
+        });
+        replies.insert({
+            "text": " 5. Anthropology DPhil - Full time - 3-4 years"
+        });
+        replies.insert({
+            "text": " 6.	Applied Landscape Archaeology Msc - Part time - 2 years"
+        });
+        replies.insert({
+            "text": " 7. Connect me to the institute"
+        });
+        replies.insert({
+            "text": "Select your option"
+        });
+        response.put("replies", replies);
+        response.put("input", {
+            "type": "select",
+            "options": {
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7"
+            }
+        });
+    } else if (ans.containsIgnoreCase("Please notify me")) {
+        response.put("action", "context");
+        response.put("context_id", "emailothercourses");
+        questions = Collection();
+        question1 = {
+            "name": "email",
+            "replies": {
+                {
+                    "text": "Sure, Can you share your email address?"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (ans.containsIgnoreCase("No,thanks")) {
+        response.put("action", "end");
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "june");
+        questions = Collection();
+        question1 = {
+            "name": "notified",
+            "replies": {
+                {
+                    "text": "We are sorry. Admissions for june are closed today.Would you like to get notified when admissions are open?"
+                }
+            },
+            "suggestions": {
+                "Show me the courses available for current year",
+                "Please notify me",
+                "No,thanks"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("applyonline")) {
+    ans = answers.get("goodname").get("text");
+    if (ans.containsIgnoreCase("Check other courses")) {
+        response.put("action", "reply");
+        replies = Collection();
+        replies.insert({
+            "text": "That's nice. It's always a pleasure to meet new aspirants! Here's the list of courses offered"
+        });
+        replies.insert({
+            "text": " 1. African Studies MSc - Full time - 9 months"
+        });
+        replies.insert({
+            "text": " 2. Ancient History DPhil - Full time - 3 years"
+        });
+        replies.insert({
+            "text": " 3. Ancient History DPhil - Parttime - 6-8 years"
+        });
+        replies.insert({
+            "text": " 4. Ancient Philosophy Mst - Full time - 9 months"
+        });
+        replies.insert({
+            "text": " 5. Anthropology DPhil - Full time - 3-4 years"
+        });
+        replies.insert({
+            "text": " 6.	Applied Landscape Archaeology Msc - Part time - 2 years"
+        });
+        replies.insert({
+            "text": " 7. Connect me to the institute"
+        });
+        replies.insert({
+            "text": "Select your option"
+        });
+        response.put("replies", replies);
+        response.put("input", {
+            "type": "select",
+            "options": {
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7"
+            }
+        });
+    } else if (ans.containsIgnoreCase("Cancel")) {
+        response.put("action", "end");
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "details");
+        questions = Collection();
+        question1 = {
+            "name": "email",
+            "replies": {
+                {
+                    "text": "Hey " + ans + ", I'll need your email address"
+                }
+            }
+        };
+        // 		question2 = {"name":"upload","replies":{{"text":"Thank you."}}};
+        question3 = {
+            "name": "verify",
+            "replies": {
+                {
+                    "text": "Thank you for submitting your documents.Please verify you Name : " + ans
+                }
+            }
+        };
+        questions.insert(question1);
+        // 		questions.insert(question2);
+        questions.insert(question3);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("details")) {
+    ans = answers.get("email").get("text");
+    response.put("action", "context");
+    response.put("context_id", "verification");
+    questions = Collection();
+    question1 = {
+        "name": "verifyemail",
+        "replies": {
+            {
+                "text": " and verify your Email: " + ans
+            }
+        },
+        "input": {
+            "type": "select",
+            "options": {
+                "Submit",
+                "Others",
+                "Edit"
+            }
+        }
+    };
+    questions.insert(question1);
+    response.put("questions", questions);
+}
+if (context_id.equals("verification")) {
+    ans = answers.get("verifyemail").get("text");
+    if (ans.containsIgnoreCase("Submit")) {
+        response.put("action", "end");
+        response.put("replies", {
+            {
+                "text": "Thank you for applying online.We will connect with you shortly."
+            }
+        });
+    } else if (ans.containsIgnoreCase("Others")) {
+        response.put("action", "reply");
+        replies = Collection();
+        replies.insert({
+            "text": "That's nice. It's always a pleasure to meet new aspirants! Here's the list of courses offered"
+        });
+        replies.insert({
+            "text": " 1. African Studies MSc - Full time - 9 months"
+        });
+        replies.insert({
+            "text": " 2. Ancient History DPhil - Full time - 3 years"
+        });
+        replies.insert({
+            "text": " 3. Ancient History DPhil - Parttime - 6-8 years"
+        });
+        replies.insert({
+            "text": " 4. Ancient Philosophy Mst - Full time - 9 months"
+        });
+        replies.insert({
+            "text": " 5. Anthropology DPhil - Full time - 3-4 years"
+        });
+        replies.insert({
+            "text": " 6.	Applied Landscape Archaeology Msc - Part time - 2 years"
+        });
+        replies.insert({
+            "text": " 7. Connect me to the institute"
+        });
+        replies.insert({
+            "text": "Select your option"
+        });
+        response.put("replies", replies);
+        response.put("input", {
+            "type": "select",
+            "options": {
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7"
+            }
+        });
+    } else {
+        response.put("action", "context");
+        response.put("context_id", "applyonline");
+        questions = Collection();
+        question1 = {
+            "name": "goodname",
+            "replies": {
+                {
+                    "text": "What's your good name?"
+                }
+            },
+            "suggestions": {
+                "Check other courses",
+                "Cancel"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    }
+}
+if (context_id.equals("emailothercourses") || context_id.equals("continuingeducation")) {
+    response.put("action", "end");
+    response.put("replies", {
+        {
+            "text": "Thank you. Our administrators will connect with you shortly. Have a nice day!"
+        }
+    });
+}
+if (context_id.equals("emailinstructions")) {
+    response.put("action", "end");
+    response.put("replies", {
+        {
+            "text": "Thank you.Email has been sent you successfully"
+        }
+    });
+}
+if (context_id.equals("eventlist")) {
+    ans = answers.get("emailaddress").get("text");
+    if (ans.containsIgnoreCase("Cancel")) {
+        response.put("action", "end");
+    } else {
+        response.put("action", "end");
+        response.put("replies", {
+            {
+                "text": "Thank you.Mail has been sent successfully. "
+            }
+        });
+    }
+}
+return response;

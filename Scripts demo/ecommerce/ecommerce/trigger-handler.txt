@@ -1,0 +1,19 @@
+
+
+Copy the below piece of sample code in the Trigger Handler: 
+
+response = Map();
+response.put("action", "reply");
+response.put("replies", {
+    {
+        "text": "Hey! Welcome to my store! Ahh..well I own it when my human friends aren't around. So tell me, what brings you here?"
+    }
+});
+options = {
+    "Great deals of the day",
+    "Need any help with purchasing?",
+    "Have a query?",
+    "Just browsing"
+};
+response.put("suggestions", options);
+return response;

@@ -1,19 +1,9 @@
 info "🟢 trigger handler invoked. visitor=" + visitor + " request=" + request;
 
 response = Map();
-replies = Collection();
-replies.insert("Hi! I'm ZoRek 🎬 your entertainment assistant.");
-replies.insert("What would you like to explore today?");
-
 response.put("action","reply");
-response.put("replies", replies);
-
-options = Collection();
-options.insert("Suggest Something");
-options.insert("Book an Event");
-options.insert("My Pick Combo");
-options.insert("Connect with human");
-response.put("suggestions", options);
-
+response.put("replies",{"Hi! I'm ZoRek 🎬 your entertainment assistant.","What would you like to explore today?"});
+options = {"Suggest Something","Book an Event","My Pick Combo","Connect with human"};
+response.put("suggestions",options);
 return response;
 

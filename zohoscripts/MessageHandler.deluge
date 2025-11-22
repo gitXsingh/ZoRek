@@ -113,6 +113,7 @@ else if(msg.equalsIgnoreCase("End chat"))
 }
 
 // Default message if no known command
+response = Map();
 response.put("action","reply");
 response.put("replies",{"Please choose an option to continue."});
 response.put("suggestions",mainOptions);

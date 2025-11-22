@@ -1,0 +1,357 @@
+
+
+Copy the below piece of sample code in the Message Handler: 
+
+
+response = Map();
+if (operation.equals("chat")) {
+    response.put("action", "reply");
+    response.put("replies", {
+        {
+            "text": "Hello, I'm Dr.Bot Phd. in Assistance. Is there anything I can help you with?"
+        }
+    });
+    response.put("suggestions", {
+        "Admissions",
+        "Courses offered for students",
+        "Events",
+        "About us",
+        "Call the institution"
+    });
+} else if (operation.equals("message")) {
+    msg = message.get("text");
+    if (msg.containsIgnoreCase("Admissions")) {
+        response.put("action", "context");
+        response.put("context_id", "admissions");
+        questions = Collection();
+        question1 = {
+            "name": "options",
+            "replies": {
+                {
+                    "text": "Nice to meet you! What are you looking for?"
+                }
+            },
+            "suggestions": {
+                "Undergraduate",
+                "Postgraduate",
+                "Continuing Education"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (msg.equalsIgnoreCase("Courses offered for students")) {
+        response.put("action", "context");
+        response.put("context_id", "studentcourses");
+        questions = Collection();
+        question1 = {
+            "name": "options",
+            "replies": {
+                {
+                    "text": "What are you looking for?"
+                }
+            },
+            "suggestions": {
+                "Undergraduate",
+                "Postgraduate"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (msg.containsIgnoreCase("Call the institution") || msg.containsIgnoreCase("Connect with the institute")) {
+        response.put("action", "end");
+    } else if (msg.containsIgnoreCase("About us")) {
+        response.put("action", "reply");
+        replies = Collection();
+        replies.insert({
+            "text": "Ah! It's always a pleasure to tell this story."
+        });
+        replies.insert({
+            "text": "About"
+        });
+        replies.insert({
+            "text": "Organisation"
+        });
+        replies.insert({
+            "text": "Facts and figures"
+        });
+        replies.insert({
+            "text": "Oxford people"
+        });
+        replies.insert({
+            "text": "Increasing access"
+        });
+        replies.insert({
+            "text": "International Oxford"
+        });
+        replies.insert({
+            "text": "Building our future"
+        });
+        replies.insert({
+            "text": "Jobs"
+        });
+        response.put("replies", replies);
+        response.put("suggestions", {
+            "Events",
+            "Admissions",
+            "Courses offered",
+            "Connect with the institute"
+        });
+    }
+    //
+    else if (msg.equalsIgnoreCase("Events") || msg.equalsIgnoreCase("Choose another event")) {
+        response.put("action", "reply");
+        replies = Collection();
+        // sample events text with title and exhibiton details
+        //replies.insert({"text":"Put ur events details with time"});
+        replies.insert({
+            "text": "i. Settlers - Museum of Natural History - Exhibitions | 9 Feb 2018 to 16 Sept 2018"
+        });
+        replies.insert({
+            "text": "ii. The tale of Prince Vessantara - Ashmolean museum - Exhibitions | 9 Feb 2018 to 16 Sept 2018 "
+        });
+        replies.insert({
+            "text": "iii. A century of women in Chinese Art - Ashmolean museum - Exhibitions | 9 Feb 2018 to 16 Sept 2018 "
+        });
+        replies.insert({
+            "text": "iv. Women in Science - museum of history of science - Exhibitions | 9 Feb 2018 to 16 Sept 2018 "
+        });
+        replies.insert({
+            "text": "v. Five paintings & a taste for art at the court of charles I - Christ Church Picture Gallery- Exhibitions | 9 Feb 2018 to 16 Sept 2018 "
+        });
+        replies.insert({
+            "text": "vi. Portrait of a building - Christ Church Picture Gallery - Exhibitions | 9 Feb 2018 to 16 Sept 2018 "
+        });
+        response.put("replies", replies);
+        response.put("suggestions", {
+            "Email the list of events",
+            "Subscribe to our event calendar",
+            "Select from above"
+        });
+    }
+    //
+    else if (msg.equalsIgnoreCase("Email the list of events") || msg.equalsIgnoreCase("Subscribe to our event calendar")) {
+        response.put("action", "context");
+        response.put("context_id", "eventlist");
+        questions = Collection();
+        question1 = {
+            "name": "emailaddress",
+            "replies": {
+                {
+                    "text": "Please share your email address"
+                }
+            },
+            "suggestions": {
+                "Cancel"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (msg.containsIgnoreCase("Select from above")) {
+        response.put("action", "reply");
+        response.put("replies", {
+            {
+                "text": "event details"
+            }
+        });
+        response.put("input", {
+            "type": "select",
+            "options": {
+                "i",
+                "ii",
+                "iii",
+                "iv",
+                "v",
+                "vi"
+            }
+        });
+    } else if (msg.equalsIgnoreCase("i") || msg.equalsIgnoreCase("ii") || msg.equalsIgnoreCase("iii") || msg.equalsIgnoreCase("iv") || msg.equalsIgnoreCase("v") || msg.equalsIgnoreCase("vi")) {
+        if (msg.equalsIgnoreCase("i")) {
+            title = "Settlers";
+        } else if (msg.equalsIgnoreCase("ii")) {
+            title = "The tale of Prince Vessantara";
+        } else if (msg.equalsIgnoreCase("iii")) {
+            title = "A century of women in Chinese Art";
+        } else if (msg.equalsIgnoreCase("iv")) {
+            title = "Women in Science";
+        } else if (msg.equalsIgnoreCase("v")) {
+            title = "Five paintings & a taste for art at the court of charles I ";
+        } else if (msg.equalsIgnoreCase("vi")) {
+            title = "Portrait of a building - Christ Church Picture Gallery";
+        }
+        response.put("action", "reply");
+        response.put("replies", {
+            {
+                "text": title + " Event date : 9 Feb 2018 to 16 Sept 2018 Event time :10:00-17:00 Venue : Hogwarts Event type : Exhibitions Event cost: free"
+            }
+        });
+        response.put("suggestions", {
+            "Choose another event",
+            "Attend this event"
+        });
+    } else if (msg.containsIgnoreCase("Attend this event")) {
+        response.put("action", "context");
+        response.put("context_id", "attendevent");
+        questions = Collection();
+        question1 = {
+            "name": "email",
+            "replies": {
+                {
+                    "text": "Please share your email address. We will send you the email confirmation."
+                }
+            },
+            "suggestions": {
+                "Choose another event",
+                "Cancel"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (msg.equalsIgnoreCase("1") || msg.equalsIgnoreCase("2") || msg.equalsIgnoreCase("3") || msg.equalsIgnoreCase("4") || msg.equalsIgnoreCase("5") || msg.equalsIgnoreCase("6")) {
+        if (msg.equalsIgnoreCase("1")) {
+            description = "The MSc in African Studies is a three-term,nine-month course designed both as a stand-alone interdisciplinary introduction to current debates about Africa, and as a preparation for doctoral research on Africa. This advanced degree programme provides an excellent foundation for those who wish to expand their knowledge of African Studies, prior to working for NGOs, the civil service, international organizations, and the media, or in other professional capacities.";
+            title = "African Studies MSc";
+        } else if (msg.equalsIgnoreCase("2")) {
+            description = "The DPhil takes the form of the composition of a substantial dissertation, of up to 100,000 words, based on new research on a subject of your choice. You will be appointed a supervisor or supervisors with relevant expertise, who will support you throughout your doctoral work, beginning with the formulation of the topic and ending with the final examination. The best dissertations are published, many in the Oxford University Press series of Classical Monographs which exists for this purpose. The vision of the DPhil as a necessary stage of an academic career, following on from master's-level education and preparing for postdoctoral work and beyond, is reflected in ways such as Doctoral students are required to set the topics of their individual specialisation in a larger understanding of developments in the field across the world.";
+            title = "Ancient History DPhil";
+        } else if (msg.equalsIgnoreCase("3")) {
+            description = "The DPhil takes the form of the composition of a substantial dissertation, of up to 100,000 words, based on new research on a subject of your choice. You will be appointed a supervisor or supervisors with relevant expertise, who will support you throughout your doctoral work, beginning with the formulation of the topic and ending with the final examination. The best dissertations are published, many in the Oxford University Press series of Classical Monographs which exists for this purpose. The vision of the DPhil as a necessary stage of an academic career, following on from master's-level education and preparing for postdoctoral work and beyond, is reflected in ways such as Doctoral students are required to set the topics of their individual specialisation in a larger understanding of developments in the field across the world.";
+            title = "Ancient History DPhil Part time";
+        } else if (msg.equalsIgnoreCase("4")) {
+            description = "Teaching and learning on the MSt in Ancient Philosophy normally consists of individual supervisions with members of the faculty during term-time, classes and lectures, and ongoing independent research.You must choose two subject options, offer a thesis of 10,000-15,000 words, and show that you have attained a satisfactory standard in Ancient Greek.Tuition for these subjects is offered in the form of supervisions, as well as lectures and classes. Assessment is by one 5,000-word essay on a topic chosen by you and approved by the course co-ordinator.The second subject option consists of two classes, which change every year, and you must attend both classes. Assessment is by two 5,000-word essays in topics linked to the area covered in the two classes. You may choose to write both essays on topics linked to one class or to write one essay on a topic linked to the first class and the other essay on a topic linked to the second. ";
+            title = "Ancient Philosophy Mst";
+        } else if (msg.equalsIgnoreCase("5")) {
+            description = "The programme offers practice in developing research skills, especially through fieldwork with human subjects, though this is not compulsory. It also offers practice in analysing, interpreting and writing up research-related materials, and in presenting such materials in seminar-type formats. It is examined by the submission of a thesis and oral examination, after three to four years of full-time study, or six to eight years of part-time study.You may be admitted to the course either with Probationer Research Student (PRS) status or, in the case of applicants holding an Oxford MPhil degree in anthropology, with full DPhil student status. Generally, you would only be admitted to the DPhil programme if you had successfully completed at least one taught degree in anthropology at the required level, whether in Oxford or elsewhere.";
+            title = "Anthropology DPhil";
+        } else if (msg.equalsIgnoreCase("6")) {
+            description = "This MSc is a part-time modular course over two years, leading to a University of Oxford graduate degree in archaeology. The course is designed for the needs of students who wish to study part-time and this includes those who are in full-time employment. Those with a personal or professional interest in landscape archaeology are welcome to apply.Landscape archaeology is an increasingly popular and widely understood concept. Using a multi-period systematic approach, it is concerned with understanding past human impacts on the resources, topography and environment of the whole landscape, from uplands to coasts, and from farmed landscapes to urban/industrial areas.";
+            title = "Applied Landscape Archaeology Msc";
+        }
+        response.put("action", "reply");
+        replies = Collection();
+        replies.insert({
+            "text": "It's an interesting subject indeed",
+            "type": "articles",
+            "title": title,
+            "description": description,
+            "articles": {
+                121212121,
+                1234343434
+            }
+        });
+        replies.insert({
+            "text": "Check courses and apply"
+        });
+        response.put("replies", replies);
+        response.put("suggestions", {
+            "Apply Online",
+            "Check other courses",
+            "Email other courses"
+        });
+    } else if (msg.containsIgnoreCase("7")) {
+        response.put("action", "end");
+    } else if (msg.containsIgnoreCase("Apply Online")) {
+        response.put("action", "context");
+        response.put("context_id", "applyonline");
+        questions = Collection();
+        question1 = {
+            "name": "goodname",
+            "replies": {
+                {
+                    "text": "What's your good name?"
+                }
+            },
+            "suggestions": {
+                "Check other courses",
+                "Cancel"
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (msg.containsIgnoreCase("Check other courses") || msg.containsIgnoreCase("Courses offered")) {
+        response.put("action", "reply");
+        replies = Collection();
+        replies.insert({
+            "text": "That's nice. It's always a pleasure to meet new aspirants! Here's the list of courses offered"
+        });
+        replies.insert({
+            "text": " 1. African Studies MSc - Full time - 9 months"
+        });
+        replies.insert({
+            "text": " 2. Ancient History DPhil - Full time - 3 years"
+        });
+        replies.insert({
+            "text": " 3. Ancient History DPhil - Parttime - 6-8 years"
+        });
+        replies.insert({
+            "text": " 4. Ancient Philosophy Mst - Full time - 9 months"
+        });
+        replies.insert({
+            "text": " 5. Anthropology DPhil - Full time - 3-4 years"
+        });
+        replies.insert({
+            "text": " 6.	Applied Landscape Archaeology Msc - Part time - 2 years"
+        });
+        replies.insert({
+            "text": " 7. Connect me to the institute"
+        });
+        replies.insert({
+            "text": "Select your option"
+        });
+        response.put("replies", replies);
+        response.put("input", {
+            "type": "select",
+            "options": {
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7"
+            }
+        });
+    } else if (msg.containsIgnoreCase("Email other courses")) {
+        response.put("action", "context");
+        response.put("context_id", "emailothercourses");
+        questions = Collection();
+        question1 = {
+            "name": "email",
+            "replies": {
+                {
+                    "text": "Sure, Can you share your email address?"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else if (msg.containsIgnoreCase("Email the instructions")) {
+        response.put("action", "context");
+        response.put("context_id", "emailinstructions");
+        questions = Collection();
+        question1 = {
+            "name": "email",
+            "replies": {
+                {
+                    "text": "Please share your email address"
+                }
+            }
+        };
+        questions.insert(question1);
+        response.put("questions", questions);
+    } else {
+        response.put("action", "reply");
+        response.put("replies", {
+            {
+                "text": "Hello, I'm Dr.Bot Phd. in Assistance. Is there anything I can help you with?"
+            }
+        });
+        response.put("suggestions", {
+            "Admissions",
+            "Courses offered for students",
+            "Events",
+            "About us",
+            "Call the institution"
+        });
+    }
+}
+return response;

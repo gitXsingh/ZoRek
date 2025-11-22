@@ -1,0 +1,206 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf200
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 response = Map();\
+//Number of dates to display\
+dateLimits = \{"1","2","3","4","5","6","7","8","9","10"\};\
+//Static timeslots that will be initiatlly available for all days\
+staticTimeSlots = \{"10:00","12:00","15:00","17:00"\};\
+daynumbertowords = \{"1":"Sunday","2":"Monday","3":"Tuesday","4":"Wednesday","5":"Thursday","6":"Friday","7":"Saturday"\};\
+monthWordToNumber = \{"Jan":"01","Feb":"02","Mar":"03","Apr":"04","May":"05","Jun":"06","Jul":"07","Aug":"08","Sep":"09","Oct":"10","Nov":"11","Dec":"12"\};\
+response.put("action","context");\
+response.put("context_id",context_id);\
+portal_name = "zylkerinc";\
+org_id = "30784977";\
+if(context_id.equals("signup"))\
+\{\
+	customer = answers.get("customer").get("text");\
+	if(customer.equalsIgnoreCase("Yes"))\
+	\{\
+		response.put("action","context");\
+		response.put("context_id","existing");\
+		question1 = \{"name":"email","replies":\{"Great! Could you help me with your registered email address?",\{"field_name":"siq_email","validate":\{"format":"email","error":\{"Please enter a valid email address"\}\}\}\}\};\
+		question2 = \{"name":"name","replies":\{"And your name?",\{"field_name":"siq_email","validate":\{"format":"name","error":\{"Please enter a valid name"\}\}\}\}\};\
+		questions = Collection();\
+		questions.insert(question1);\
+		questions.insert(question2);\
+		response.put("questions",questions);\
+	\}\
+	else if(customer.equalsIgnoreCase("No"))\
+	\{\
+		response.put("action","context");\
+		response.put("context_id","new");\
+		question1 = \{"name":"email","replies":\{"Great! Could you help me with your registered email address?",\{"field_name":"siq_email","validate":\{"format":"email","error":\{"Please enter a valid email address"\}\}\}\}\};\
+		question2 = \{"name":"name","replies":\{"And your name?",\{"field_name":"siq_email","validate":\{"format":"name","error":\{"Please enter a valid name"\}\}\}\}\};\
+		questions = Collection();\
+		questions.insert(question1);\
+		questions.insert(question2);\
+		response.put("questions",questions);\
+	\}\
+\}\
+else if(context_id.equals("new"))\
+\{\
+	name = answers.get("name").get("text");\
+	email = answers.get("email").get("text");\
+	//-----------------------------------------------------------------------------------------------------------\
+	//Create lead in Zoho CRM\
+	leadinfo = \{"Last_Name":name,"Email":email\};\
+	info zoho.crm.createRecord("Leads",leadinfo,Map(),"zohocrm25");\
+	response.put("action","context");\
+	response.put("context_id","newvisitor");\
+	question1 = \{"name":"date","replies":\{\{"text":"You can check out our upcoming webinars [here](https://community.zoho.com/webinars/zobot.html)"\},"Please choose a slot that would work best for you"\},"input":\{"type":"date-timeslots","label":"Schedule","tz":true,"slots":\{"31/05/2019":\{"10:00","12:00","15:00","17:00"\},"01/06/2019":\{"10:00","12:00","15:00","17:00"\},"02/06/2019":\{"10:00","12:00","15:00","17:00"\},"03/06/2019":\{"10:00","12:00","15:00","17:00"\},"04/06/2019":\{"10:00","12:00","15:00","17:00"\},"05/06/2019":\{"10:00","12:00","15:00","17:00"\},"06/06/2019":\{"10:00","12:00","15:00","17:00"\},"07/06/2019":\{"10:00","12:00","15:00","17:00"\},"08/06/2019":\{"10:00","12:00","15:00","17:00"\},"09/06/2019":\{"10:00","12:00","15:00","17:00"\}\}\}\};\
+	question2 = \{"name":"name","replies":\{"Please enter your name",\{"field_name":"siq_name","validate":\{"format":"name","error":\{"Please enter a valid name"\}\}\}\}\};\
+	questions = Collection();\
+	questions.insert(question1);\
+	questions.insert(question2);\
+	response.put("questions",questions);\
+\}\
+else if(context_id.equals("newvisitor"))\
+\{\
+	//info "schedule"+answers;\
+	name = answers.get("name").get("text");\
+	date = answers.get("date");\
+	meta = date.get("meta");\
+	card_data = meta.get("card_data");\
+	slot = card_data.get("value").get("slot");\
+	value = slot.toDateTime();\
+	display_time = value.toString("HH:mm");\
+	display_date = value.toString("dd-MM-yyy");\
+	_date = value.toString("MM-dd-yyy HH:mm:ss");\
+	//Event creation\
+	paramMap = \{'StartDate':_date,"EndDate":_date,"sum":'Call with ' + name\};\
+	zoho.calendar.createEvent("zillium.pboyle",paramMap);\
+	info paramMap;\
+	sendmail\
+	[\
+		from :zoho.adminuserid\
+		to :email\
+		subject :"Webinar Scheduled"\
+		message :"Your response has been recorded and your seat has been blocked for the webinar"\
+	]\
+	response.put("action","reply");\
+	replies = Collection();\
+	replies.insert("Excellent! Thank you for choosing our services. We will be glad to be of assistance!");\
+	response.put("input",\{"type":"select","options":\{"Return to Main Menu","End chat"\}\});\
+	response.put("replies",replies);\
+\}\
+else if(context_id.equals("existing"))\
+\{\
+	email = answers.get("email").get("text");\
+	info email;\
+	//----------------------------------------------------------------------------------------------------------\
+	//Search records in Zoho CRM\
+	visitorinfo = zoho.crm.searchRecords("Leads","(Email:equals:" + email + ")",0,0,\{"converted":"both"\},"zohocrm25");\
+	//-----------------------------------------------------------------------------------------------------------\
+	info visitorinfo;\
+	if(!visitorinfo.isEmpty())\
+	\{\
+		//-------------------------------------------------------------------------------------------------------\
+		//Generate OTP\
+		//Step1:Get the email prefix value\
+		email_prefix = email.toList("@").get(0);\
+		email_prefix = email_prefix.replaceAll("[^A-Za-z]","");\
+		email_prefix = email_prefix.toLowerCase();\
+		//Step2:Get two random integers\
+		alphabet_indexes = "_abcdefghijklmnopqrstuvxywz";\
+		random_int1 = 7 + alphabet_indexes.indexOf(email_prefix.subText(0,1));\
+		random_int2 = 8 + alphabet_indexes.indexOf(email_prefix.subText(1,2));\
+		//Step3:Get current time in millis\
+		random_long1 = zoho.currenttime.toLong();\
+		//Step4:Process the time and random int to generate a random number\
+		random_long2 = random_long1 % random_int1;\
+		random_long3 = random_long1 % random_int2;\
+		random = random_long1.toString();\
+		random = random.replaceAll("0","");\
+		//replacing zeroes as many zeroes are present.\
+		random = random + "" + random_long2 + "" + random_long3;\
+		//Step5:Jumble the random number string to get an unique OTP\
+		length = random.length();\
+		i = \{length - 2,length - 4,length - 1,length - 5,length - 6,length - 3\};\
+		otp = "" + random.subText(i.get(0) - 1,i.get(0)) + random.subText(i.get(1) - 1,i.get(1)) + random.subText(i.get(2) - 1,i.get(2)) + random.subText(i.get(3) - 1,i.get(3)) + random.subText(i.get(4) - 1,i.get(4)) + random.subText(i.get(5) - 1,i.get(5));\
+		//Step6:Replace all non numeric chars just in case\
+		otp = otp.replaceAll("[^\\d]","");\
+		//Step7:Add a Zoho tag\
+		otp = "Z-" + otp;\
+		//Step8:Store OTP in session\
+		zoho.salesiq.visitorsession.set(portal_name,\{"otp":otp\});\
+		sendmail\
+		[\
+			from :zoho.adminuserid\
+			to :email\
+			subject :"OTP for Zoho SalesIQ Bot : " + zoho.currenttime\
+			message :otp + " is your OTP for Zoho SalesIQ bot. Never share this OTP with anyone else<br><br>Thanks,<br>Team Zoho SalesIQ"\
+		]\
+		response.put("action","context");\
+		response.put("context_id","validate_otp");\
+		otp = \{"name":"otp","replies":\{"Verification email has been sent to your email address. Kindly check for OTP and enter here."\}\};\
+		response.put("questions",\{otp\});\
+	\}\
+	else\
+	\{\
+		response.put("action","context");\
+		response.put("context_id","email");\
+		question = \{"name":"email","replies":\{"Sorry! That email address is not registered with us. Please give it another try.",\{"field_name":"siq_email","validate":\{"format":"email","error":\{"Please enter a valid email address"\}\}\}\}\};\
+		response.put("questions",\{question\});\
+	\}\
+\}\
+else if(context_id.equals("validate_otp"))\
+\{\
+	otp = answers.get("otp").get("text");\
+	//visitorsession API used to  get the OTP and validate it\
+	valid_otp = zoho.salesiq.visitorsession.get(portal_name,"otp").get("data").get("otp");\
+	info valid_otp;\
+	if(otp.equals(valid_otp))\
+	\{\
+		//if(True)\
+		response.put("action","context");\
+		response.put("context_id","schedule");\
+		question1 = \{"name":"date","replies":\{\{"text":"You can check out our upcoming webinars [here](https://community.zoho.com/webinars/zobot.html)"\},"Please choose a slot that would work best for you"\},"input":\{"type":"date-timeslots","label":"Schedule","tz":true,"slots":\{"31/05/2019":\{"10:00","12:00","15:00","17:00"\},"01/06/2019":\{"10:00","12:00","15:00","17:00"\},"02/06/2019":\{"10:00","12:00","15:00","17:00"\},"03/06/2019":\{"10:00","12:00","15:00","17:00"\},"04/06/2019":\{"10:00","12:00","15:00","17:00"\},"05/06/2019":\{"10:00","12:00","15:00","17:00"\},"06/06/2019":\{"10:00","12:00","15:00","17:00"\},"07/06/2019":\{"10:00","12:00","15:00","17:00"\},"08/06/2019":\{"10:00","12:00","15:00","17:00"\},"09/06/2019":\{"10:00","12:00","15:00","17:00"\}\}\}\};\
+		question2 = \{"name":"name","replies":\{"Please enter your name",\{"field_name":"siq_name","validate":\{"format":"name","error":\{"Please enter a valid name"\}\}\}\}\};\
+		questions = Collection();\
+		questions.insert(question1);\
+		questions.insert(question2);\
+		response.put("questions",questions);\
+	\}\
+	else\
+	\{\
+		response.put("action","context");\
+		response.put("context_id","validate_otp");\
+		otp = \{"name":"otp","replies":\{"That is not a valid OTP. Please re-enter your OTP"\}\};\
+		response.put("questions",\{otp\});\
+	\}\
+\}\
+else if(context_id.equals("schedule"))\
+\{\
+	//info "schedule"+answers;\
+	name = answers.get("name").get("text");\
+	date = answers.get("date");\
+	meta = date.get("meta");\
+	card_data = meta.get("card_data");\
+	slot = card_data.get("value").get("slot");\
+	value = slot.toDateTime();\
+	display_time = value.toString("HH:mm");\
+	display_date = value.toString("dd-MM-yyy");\
+	_date = value.toString("MM-dd-yyy HH:mm:ss");\
+	//Event creation\
+	paramMap = \{'StartDate':_date,"EndDate":_date,"sum":'Call with ' + name\};\
+	zoho.calendar.createEvent("zillium.pboyle",paramMap);\
+	info paramMap;\
+	sendmail\
+	[\
+		from :zoho.adminuserid\
+		to :email\
+		subject :"Webinar Scheduled"\
+		message :"Your response has been recorded and your seat has been blocked for the webinar"\
+	]\
+	response.put("action","reply");\
+	replies = Collection();\
+	replies.insert("Excellent! Thank you for choosing our services. We will be glad to be of assistance!");\
+	response.put("input",\{"type":"select","options":\{"Return to Main Menu","End chat"\}\});\
+	response.put("replies",replies);\
+\}\
+return response;}

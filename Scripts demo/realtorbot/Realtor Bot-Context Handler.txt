@@ -1,0 +1,391 @@
+response = Map();
+response.put("action","context");
+response.put("context_id",context_id);
+if("browsing".equalsIgnoreCase(context_id))
+{
+	type = answers.get("type").get("text");
+	if(type.equalsIgnoreCase("Just Launched"))
+	{
+		if(!answers.containsKey("isinterested"))
+		{
+			replies = Collection();
+			replies.insert({"text":"Here is the list of recently completed projects available in the market."});
+			replies.insert({"text":"Acadia 'smart' homes - 50 Lakhs  Sq Ft :3400  Location : Guduvancheri,Chennai","image":"https://www.zoho.com/salesiq/images/bot/realestate2.jpg"});
+			replies.insert({"text":"Ruby Mansions - 45 Lakhs Sq Ft: 3400 Location : Tambaram,Chennai","image":"https://www.zoho.com/salesiq/images/bot/realestate7.jpg"});
+			replies.insert({"text":"Urban Tree 'Smart' homes - 41 Lakhs Sq Ft: 3100 Location: Tambaram, Chennai","image":"https://www.zoho.com/salesiq/images/bot/realestate3.jpg"});
+			replies.insert({"text":"Sochi homes - 44 Lakhs Location : Guduvancheri, Chennai","image":"https://www.zoho.com/salesiq/images/bot/realestate10.jpg"});
+			replies.insert("Are you interested in any of these projects?");
+			question = {"name":"isinterested","replies":replies,"input":{"type":"select","options":{"Yeah,I'm interested","Not now"}}};
+			replies.insert("Would you like a site visit?");
+			question = {"name":"sitevisit","replies":replies,"input":{"type":"select","options":{"Yes","No"}}};
+			response.put("questions",{question});
+		}
+		else
+		{
+			isinterested = answers.get("isinterested").get("text");
+			if("Yeah,I'm interested".equalsIgnoreCase(isinterested))
+			{
+				if(!answers.containsKey("email"))
+				{
+					question = {"name":"email","replies":{"Great! Please send us your email address for us to send you a detailed brochure with all relevant information included."}};
+					response.put("questions",{question});
+				}
+				else
+				{
+					email = answers.get("email").get("text");
+					if(!answers.containsKey("phone"))
+					{
+						question = {"name":"phone","replies":{"Thanks. May I have your contact number for our agent to get in touch with you?"}};
+						response.put("questions",{question});
+					}
+					else
+					{
+						phone = answers.get("phone").get("text");
+						if(!answers.containsKey("end"))
+						{
+							question = {"name":"end","replies":{"Thank you! Now, sit back and relax. We will call you and answer any and all questions that you may have."}};
+							response.put("questions",{question});
+						}
+						else
+						{
+							response.put("action","end");
+							response.put("replies",{"Thank you"});
+						}
+					}
+				}
+			}
+			else if("Not now".equalsIgnoreCase(isinterested))
+			{
+				response.put("action","reply");
+				response.put("replies",{"I'll be here to assist you"});
+				return response;
+			}
+		}
+	}
+	else if(type.equalsIgnoreCase("Upcoming"))
+	{
+		if(!answers.containsKey("isinterested"))
+		{
+			replies.insert({"text":"Here is the list of recently completed projects available in the market."});
+			replies.insert({"text":"Acadia 'smart' homes - 50 Lakhs  Sq Ft :3400  Location : Guduvancheri,Chennai","image":"https://www.zoho.com/salesiq/images/bot/realestate2.jpg"});
+			replies.insert({"text":"Ruby Mansions - 45 Lakhs Sq Ft: 3400 Location : Tambaram,Chennai","image":"https://www.zoho.com/salesiq/images/bot/realestate7.jpg"});
+			replies.insert({"text":"Urban Tree 'Smart' homes - 41 Lakhs Sq Ft: 3100 Location: Tambaram, Chennai","image":"https://www.zoho.com/salesiq/images/bot/realestate3.jpg"});
+			replies.insert({"text":"Sochi homes - 44 Lakhs Location : Guduvancheri, Chennai","image":"https://www.zoho.com/salesiq/images/bot/realestate10.jpg"});
+			replies.insert("Are you interested in any of these projects?");
+			question = {"name":"isinterested","replies":replies,"input":{"type":"select","options":{"Yeah,I'm interested","Not now"}}};
+			response.put("questions",{question});
+		}
+		else
+		{
+			isinterested = answers.get("isinterested").get("text");
+			if("Notify me".equalsIgnoreCase(isinterested))
+			{
+				if(!answers.containsKey("email"))
+				{
+					question = {"name":"email","replies":{"Great!  Please send me your email address for me to notify you once the project is ready for occupation."}};
+					response.put("questions",{question});
+				}
+				else
+				{
+					email = answers.get("email").get("text");
+					if(!answers.containsKey("phone"))
+					{
+						question = {"name":"phone","replies":{"Thanks. May I have your contact number for our agent to get in touch with you?"}};
+						response.put("questions",{question});
+					}
+					else
+					{
+						phone = answers.get("phone").get("text");
+						if(!answers.containsKey("end"))
+						{
+							question = {"name":"end","replies":{"Thank you! Now, sit back and relax. We will call you and answer any and all questions that you may have."}};
+							response.put("questions",{question});
+						}
+						else
+						{
+							response.put("action","end");
+							response.put("replies",{"Thank you"});
+						}
+					}
+				}
+			}
+			else if("Not now".equalsIgnoreCase(isinterested))
+			{
+				response.put("action","reply");
+				response.put("replies",{"I'll be here to assist you"});
+				return response;
+			}
+		}
+	}
+}
+else if("assistance".equalsIgnoreCase(context_id))
+{
+	type = answers.get("type").get("text");
+	if(type.equalsIgnoreCase("Commercial space") || type.equalsIgnoreCase("Buy Apartment/House") || type.equalsIgnoreCase("Rent Apartment/House"))
+	{
+		if(!answers.containsKey("locationtype"))
+		{
+			question = {"name":"locationtype","replies":{"Oh great! Select the location you prefer."},"input":{"type":"select","options":{"Pick a location","Not interested.Just browsing"}}};
+			response.put("questions",{question});
+		}
+		else
+		{
+			locationtype = answers.get("locationtype").get("text");
+			if(locationtype.equalsIgnoreCase("Pick a location"))
+			{
+				if(!answers.containsKey("location"))
+				{
+					question = {"name":"location","replies":{"Pick the location"},"input":{"type":"location"}};
+					response.put("questions",{question});
+				}
+				else
+				{
+					location = answers.get("location").get("text");
+					if(!answers.containsKey("buildingtype"))
+					{
+						question = {"name":"buildingtype","replies":{"We have 15 New Houses/ Apartments in the selected area."},"input":{"type":"select","options":{"House","Apartment","Villa"}}};
+						response.put("questions",{question});
+					}
+					else
+					{
+						buildingtype = answers.get("buildingtype").get("text");
+						if(!answers.containsKey("construction"))
+						{
+							question = {"name":"construction","replies":{"So, what are you looking for?"},"input":{"type":"select","options":{"Old construction","New construction"}}};
+							response.put("questions",{question});
+						}
+						else
+						{
+							if(!answers.containsKey("price"))
+							{
+								question = {"name":"price","replies":{"What is the price range you have in mind?"},"input":{"type":"slider","values":{"20L","30L","40L","50L","60L"}}};
+								response.put("questions",{question});
+							}
+							else
+							{
+								pricerange = answers.get("price").get("text");
+								if(!answers.containsKey("option"))
+								{
+									question = {"name":"option","replies":{{"text":"Do you like any of these?"},{"text":"La Pausa - 35 Lakhs Sq Ft:13,400 Location: Chennai, Tamilnadu","image":"https://www.zoho.com/salesiq/images/bot/realestate14.jpg"},{"text":"L'Barbados - 40 Lakhs - Sq Ft: 4500 Location: Chennai, India","image":"https://www.zoho.com/salesiq/images/bot/realestate11.jpg"},{"text":"The Atlantis - 80 Lakhs Sq Ft:9200 Location: Chennai, India","image":"https://www.zoho.com/salesiq/images/bot/realestate9.jpg"},{"text":"Select"}},"input":{"type":"select","options":{"La Pausa","L'Barbados","Atlantis","Connect with agent"}}};
+									response.put("questions",{question});
+								}
+								else
+								{
+									option = answers.get("option").get("text");
+									if("Connect with agent".equalsIgnoreCase(option))
+									{
+										response.put("action","forward");
+										response.put("replies",{"Please wait while we connect to the operator"});
+									}
+									else
+									{
+										if(!answers.containsKey("action"))
+										{
+											question = {"name":"action","replies":{"Wow! You got a great taste! Would you like to schedule a meeting with the builder to see the property?"},"input":{"type":"select","options":{"Connect with agent","Schedule a meeting"}}};
+											response.put("questions",{question});
+										}
+										else
+										{
+											action = answers.get("action").get("text");
+											if("Connect with agent".equalsIgnoreCase(action))
+											{
+												response.put("action","forward");
+												response.put("replies",{"Please wait while we connect to the operator"});
+											}
+											else if("Schedule a meeting".equalsIgnoreCase(action))
+											{
+												if(!answers.containsKey("date"))
+												{
+													question = {"name":"date","replies":{"Choose a date for the meeting."},"input":{"type":"calendar","time":"false"}};
+													response.put("questions",{question});
+												}
+												else
+												{
+													date = answers.get("date").get("text");
+													if(!answers.containsKey("email"))
+													{
+														question = {"name":"email","replies":{"Enter your email"}};
+														response.put("questions",{question});
+													}
+													else
+													{
+														email = answers.get("email").get("text");
+														if(!answers.containsKey("phone"))
+														{
+															question = {"name":"phone","replies":{"Enter your phone number"}};
+															response.put("questions",{question});
+														}
+														else
+														{
+															response.put("action","end");
+															response.put("replies",{"Your meeting has been scheduled with our agent. We will call you on the scheduled date."});
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				response.put("context_id","browsing");
+				question = {"name":"type","replies":{"Okay, enjoy looking around!","I'll be standing by,in case you need me."},"input":{"type":"select","options":{"Just Launched","Upcoming"}}};
+				response.put("questions",{question});
+			}
+		}
+	}
+}
+else if("support".equalsIgnoreCase(context_id))
+{
+	type = answers.get("type").get("text");
+	if(type.equalsIgnoreCase("Loans"))
+	{
+		if(!answers.containsKey("loanactivity"))
+		{
+			question = {"name":"loanactivity","replies":{"What do you want to do?"},"input":{"type":"select","options":{"Check my eligibility","Apply for loan","Connect to an agent"}}};
+			response.put("questions",{question});
+		}
+		else
+		{
+			loanactivity = answers.get("loanactivity").get("text");
+			if(loanactivity.equalsIgnoreCase("Check my eligibility"))
+			{
+				if(!answers.containsKey("income"))
+				{
+					question = {"name":"income","replies":{"What's your gross annual income?"},"input":{"type":"slider","values":{"20L","30L","40L","50L","60L"}}};
+					response.put("questions",{question});
+				}
+				else
+				{
+					income = answers.get("income").get("text");
+					if(!answers.containsKey("schedule"))
+					{
+						question = {"name":"schedule","replies":{"Thank you, you are eligible for the loan amount of " + income},"input":{"type":"select","options":{"Schedule an appointment","Apply for a loan","Connect to an agent"}}};
+						response.put("questions",{question});
+					}
+					else
+					{
+						schedule = answers.get("schedule").get("text");
+						if(schedule.equalsIgnoreCase("Schedule an appointment"))
+						{
+							if(!answers.containsKey("date"))
+							{
+								question = {"name":"date","replies":{"Choose a date for the meeting."},"input":{"type":"calendar","time":"false"}};
+								response.put("questions",{question});
+							}
+							else
+							{
+								date = answers.get("date").get("text");
+								if(!answers.containsKey("email"))
+								{
+									question = {"name":"email","replies":{"Please share your email"}};
+									response.put("questions",{question});
+								}
+								else
+								{
+									email = answers.get("email").get("text");
+									if(!answers.containsKey("phone"))
+									{
+										question = {"name":"phone","replies":{"Please share your phone number"}};
+										response.put("questions",{question});
+									}
+									else
+									{
+										phone = answers.get("phone").get("text");
+										response.put("action","end");
+										response.put("replies",{"Your meeting has been scheduled with our agent. We will call you on the scheduled date."});
+									}
+								}
+							}
+						}
+						else if(schedule.equalsIgnoreCase("Apply for a loan"))
+						{
+							if(!answers.containsKey("bank"))
+							{
+								question = {"name":"bank","replies":{"Choose the bank where you would like to apply for a loan."},"input":{"type":"select","options":{"BARCLAYS","HSBC","HDFC"}}};
+								response.put("questions",{question});
+							}
+							else
+							{
+								bank = answers.get("bank").get("text");
+								if(!answers.containsKey("email"))
+								{
+									question = {"name":"email","replies":{"Enter your email"}};
+									response.put("questions",{question});
+								}
+								else
+								{
+									email = answers.get("email").get("text");
+									if(!answers.containsKey("phone"))
+									{
+										question = {"name":"phone","replies":{"Please share your phone number"}};
+										response.put("questions",{question});
+									}
+									else
+									{
+										phone = answers.get("phone").get("text");
+										response.put("action","end");
+										response.put("replies",{"Your meeting has been scheduled with our agent. We will call you on the scheduled date."});
+									}
+								}
+							}
+						}
+						else if(schedule.equalsIgnoreCase("Connect to an agent"))
+						{
+							response.put("action","forward");
+							response.put("replies",{"Please wait while we connect you to an agent"});
+						}
+					}
+				}
+			}
+			else if(loanactivity.equalsIgnoreCase("Apply for loan"))
+			{
+				if(!answers.containsKey("bank"))
+				{
+					question = {"name":"bank","replies":{"Choose the bank where you would like to apply for a loan."},"input":{"type":"select","options":{"BARCLAYS","HSBC","BOA"}}};
+					response.put("questions",{question});
+				}
+				else
+				{
+					bank = answers.get("bank").get("text");
+					if(!answers.containsKey("email"))
+					{
+						question = {"name":"email","replies":{"Enter your email"}};
+						response.put("questions",{question});
+					}
+					else
+					{
+						email = answers.get("email").get("text");
+						if(!answers.containsKey("phone"))
+						{
+							question = {"name":"phone","replies":{"Please share your phone number"}};
+							response.put("questions",{question});
+						}
+						else
+						{
+							phone = answers.get("phone").get("text");
+							response.put("action","end");
+							response.put("replies",{"Your meeting has been scheduled with our agent. We will call you on the scheduled date."});
+						}
+					}
+				}
+			}
+			else if(loanactivity.equalsIgnoreCase("Connect to an agent"))
+			{
+				response.put("action","forward");
+				response.put("replies",{"Please wait while we connect you to an agent"});
+			}
+		}
+	}
+	else if(type.equalsIgnoreCase("Advice"))
+	{
+		response.put("action","forward");
+		response.put("replies",{"Please wait while we connect you to our operator"});
+	}
+}
+return response;
