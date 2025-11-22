@@ -112,6 +112,35 @@ else if(msg.equalsIgnoreCase("End chat"))
 	return response;
 }
 
+// Check if message is a number (1-10) - likely a card selection
+isNumber = false;
+selectedNumber = 0;
+if(msg != "" && msg.length() <= 2)
+{
+	try
+	{
+		selectedNumber = msg.toNumber();
+		if(selectedNumber >= 1 && selectedNumber <= 10)
+		{
+			isNumber = true;
+		}
+	}
+	catch(numErr)
+	{
+		isNumber = false;
+	}
+}
+
+// If user selected a card number, acknowledge it and provide helpful options
+if(isNumber)
+{
+	response = Map();
+	response.put("action","reply");
+	response.put("replies",{"Thanks for your selection! Scroll up to find the card with the 🔗 link - you can click that link directly. Or explore more options below."});
+	response.put("suggestions",mainOptions);
+	return response;
+}
+
 // Default message if no known command
 response = Map();
 response.put("action","reply");

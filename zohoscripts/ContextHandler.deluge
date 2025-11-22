@@ -71,10 +71,298 @@ if(context_id.equals("suggest_context"))
 			return response;
 		}
 
-		responseText = "Here are some " + category + " suggestions.";
+		// Check if preferences have been collected - if not, ask for them first
+		genre = "";
+		minImdb = "";
+		year = "";
+		subject = "";
+		keyword = "";
+		diet = "";
+		songType = "";
+		
+		if(answers != null)
+		{
+			if(answers.containsKey("genre"))
+			{
+				try
+				{
+					genreAns = answers.get("genre");
+					if(genreAns != null)
+					{
+						genre = genreAns.get("text").toString();
+					}
+				}
+				catch(genErr)
+				{
+					if(answers.get("genre") != null)
+					{
+						genre = answers.get("genre").toString();
+					}
+				}
+			}
+			if(answers.containsKey("minImdb"))
+			{
+				try
+				{
+					ratingAns = answers.get("minImdb");
+					if(ratingAns != null)
+					{
+						minImdb = ratingAns.get("text").toString();
+					}
+				}
+				catch(ratingErr)
+				{
+					if(answers.get("minImdb") != null)
+					{
+						minImdb = answers.get("minImdb").toString();
+					}
+				}
+			}
+			if(answers.containsKey("year"))
+			{
+				try
+				{
+					yearAns = answers.get("year");
+					if(yearAns != null)
+					{
+						year = yearAns.get("text").toString();
+					}
+				}
+				catch(yearErr)
+				{
+					if(answers.get("year") != null)
+					{
+						year = answers.get("year").toString();
+					}
+				}
+			}
+			if(answers.containsKey("subject"))
+			{
+				try
+				{
+					subjectAns = answers.get("subject");
+					if(subjectAns != null)
+					{
+						subject = subjectAns.get("text").toString();
+					}
+				}
+				catch(subErr)
+				{
+					if(answers.get("subject") != null)
+					{
+						subject = answers.get("subject").toString();
+					}
+				}
+			}
+			if(answers.containsKey("keyword"))
+			{
+				try
+				{
+					keywordAns = answers.get("keyword");
+					if(keywordAns != null)
+					{
+						keyword = keywordAns.get("text").toString();
+					}
+				}
+				catch(keyErr)
+				{
+					if(answers.get("keyword") != null)
+					{
+						keyword = answers.get("keyword").toString();
+					}
+				}
+			}
+			if(answers.containsKey("diet"))
+			{
+				try
+				{
+					dietAns = answers.get("diet");
+					if(dietAns != null)
+					{
+						diet = dietAns.get("text").toString();
+					}
+				}
+				catch(dietErr)
+				{
+					if(answers.get("diet") != null)
+					{
+						diet = answers.get("diet").toString();
+					}
+				}
+			}
+			if(answers.containsKey("songType"))
+			{
+				try
+				{
+					songAns = answers.get("songType");
+					if(songAns != null)
+					{
+						songType = songAns.get("text").toString();
+					}
+				}
+				catch(songErr)
+				{
+					if(answers.get("songType") != null)
+					{
+						songType = answers.get("songType").toString();
+					}
+				}
+			}
+		}
+		
+		// If category is selected but preferences not collected, ask for them
+		if(category.equalsIgnoreCase("movies") && genre == "")
+		{
+			response = Map();
+			response.put("action","context");
+			response.put("context_id","suggest_context");
+			questions = Collection();
+			
+			q1 = Map();
+			q1.put("name","genre");
+			q1.put("replies",{"What genre are you in the mood for? (e.g., Action, Drama, Comedy)"});
+			q1.put("suggestions",{"Action","Drama","Comedy","Thriller","Sci-Fi","Romance","Horror","Adventure","Surprise Me"});
+			
+			q2 = Map();
+			q2.put("name","minImdb");
+			q2.put("replies",{"Minimum IMDB rating? (e.g., 7.0, 8.0, or skip)"});
+			q2.put("suggestions",{"7.0+","8.0+","8.5+","Any Rating","Skip"});
+			
+			q3 = Map();
+			q3.put("name","year");
+			q3.put("replies",{"Preferred release year? (e.g., 2020, 2015, or skip)"});
+			q3.put("suggestions",{"2020+","2015+","2010+","Any Year","Skip"});
+			
+			questions.insert(q1);
+			questions.insert(q2);
+			questions.insert(q3);
+			response.put("questions",questions);
+			hasReturned = true;
+			return response;
+		}
+		else if(category.equalsIgnoreCase("books") && subject == "")
+		{
+			response = Map();
+			response.put("action","context");
+			response.put("context_id","suggest_context");
+			questions = Collection();
+			
+			q1 = Map();
+			q1.put("name","subject");
+			q1.put("replies",{"What kind of books interest you? (e.g., Fiction, Mystery, Biography)"});
+			q1.put("suggestions",{"Fiction","Mystery","Biography","Self-Help","Sci-Fi","Romance","Thriller","Bestsellers","Surprise Me"});
+			
+			questions.insert(q1);
+			response.put("questions",questions);
+			hasReturned = true;
+			return response;
+		}
+		else if(category.equalsIgnoreCase("games") && keyword == "")
+		{
+			response = Map();
+			response.put("action","context");
+			response.put("context_id","suggest_context");
+			questions = Collection();
+			
+			q1 = Map();
+			q1.put("name","keyword");
+			q1.put("replies",{"What type of games do you enjoy? (e.g., Action, RPG, Strategy)"});
+			q1.put("suggestions",{"Action","RPG","Strategy","Racing","Adventure","Horror","Sports","Popular Games","Surprise Me"});
+			
+			questions.insert(q1);
+			response.put("questions",questions);
+			hasReturned = true;
+			return response;
+		}
+		else if(category.equalsIgnoreCase("food") && diet == "")
+		{
+			response = Map();
+			response.put("action","context");
+			response.put("context_id","suggest_context");
+			questions = Collection();
+			
+			q1 = Map();
+			q1.put("name","diet");
+			q1.put("replies",{"Any dietary preferences?"});
+			q1.put("suggestions",{"Veg","Non-Veg","Vegan","Keto","Any","Surprise Me"});
+			
+			questions.insert(q1);
+			response.put("questions",questions);
+			hasReturned = true;
+			return response;
+		}
+		else if(category.equalsIgnoreCase("music") && songType == "")
+		{
+			response = Map();
+			response.put("action","context");
+			response.put("context_id","suggest_context");
+			questions = Collection();
+			
+			q1 = Map();
+			q1.put("name","songType");
+			q1.put("replies",{"What music style do you prefer? (e.g., Pop, Rock, Hip-Hop)"});
+			q1.put("suggestions",{"Pop","Rock","Hip-Hop","Lo-fi","Classical","EDM","Jazz","Country","Surprise Me"});
+			
+			questions.insert(q1);
+			response.put("questions",questions);
+			hasReturned = true;
+			return response;
+		}
+
+		// Now build payload with collected preferences
+		responseText = "Here are some " + category + " suggestions based on your preferences.";
 
 		payload = Map();
 		payload.put("category",category);
+		prefs = Map();
+		
+		if(category.equalsIgnoreCase("movies"))
+		{
+			if(genre != "" && !genre.equalsIgnoreCase("skip") && !genre.equalsIgnoreCase("surprise me"))
+			{
+				prefs.put("genre",genre);
+			}
+			if(minImdb != "" && !minImdb.equalsIgnoreCase("skip") && !minImdb.equalsIgnoreCase("any rating"))
+			{
+				minImdbVal = minImdb.replace("+","").replace(" ","");
+				prefs.put("minImdb",minImdbVal);
+			}
+			if(year != "" && !year.equalsIgnoreCase("skip") && !year.equalsIgnoreCase("any year"))
+			{
+				yearVal = year.replace("+","").replace(" ","");
+				prefs.put("year",yearVal);
+			}
+		}
+		else if(category.equalsIgnoreCase("books"))
+		{
+			if(subject != "" && !subject.equalsIgnoreCase("skip") && !subject.equalsIgnoreCase("surprise me"))
+			{
+				prefs.put("subject",subject);
+			}
+		}
+		else if(category.equalsIgnoreCase("games"))
+		{
+			if(keyword != "" && !keyword.equalsIgnoreCase("skip") && !keyword.equalsIgnoreCase("surprise me"))
+			{
+				prefs.put("keyword",keyword);
+			}
+		}
+		else if(category.equalsIgnoreCase("food"))
+		{
+			if(diet != "" && !diet.equalsIgnoreCase("skip") && !diet.equalsIgnoreCase("surprise me") && !diet.equalsIgnoreCase("any"))
+			{
+				prefs.put("diet",diet);
+			}
+		}
+		else if(category.equalsIgnoreCase("music"))
+		{
+			if(songType != "" && !songType.equalsIgnoreCase("skip") && !songType.equalsIgnoreCase("surprise me"))
+			{
+				prefs.put("songType",songType);
+			}
+		}
+		
+		payload.put("prefs",prefs);
 		apiResult = Map();
 		apiSuccess = true;
 
@@ -163,6 +451,7 @@ if(context_id.equals("suggest_context"))
 						cardTitle = "";
 						cardSubtitle = "";
 						cardImage = "";
+						cardUrl = "";
 						if(card.containsKey("title"))
 						{
 							cardTitle = card.get("title").toString();
@@ -174,15 +463,35 @@ if(context_id.equals("suggest_context"))
 						if(card.containsKey("image") && card.get("image") != null)
 						{
 							imageVal = card.get("image").toString();
-							if(imageVal != "" && imageVal != null)
+							if(imageVal != "" && imageVal != null && imageVal != "null")
 							{
 								cardImage = imageVal;
+							}
+						}
+						if(card.containsKey("actions"))
+						{
+							actionsList = card.get("actions");
+							if(actionsList != null && actionsList.size() > 0)
+							{
+								firstAction = actionsList.get(0);
+								if(firstAction != null && firstAction.containsKey("link"))
+								{
+									urlVal = firstAction.get("link").toString();
+									if(urlVal != "" && urlVal != null && urlVal != "null")
+									{
+										cardUrl = urlVal;
+									}
+								}
 							}
 						}
 						replyText = cardIndex.toString() + ". " + cardTitle;
 						if(cardSubtitle != "")
 						{
 							replyText = replyText + " - " + cardSubtitle;
+						}
+						if(cardUrl != "")
+						{
+							replyText = replyText + "\n🔗 " + cardUrl;
 						}
 						replyMap = Map();
 						replyMap.put("text",replyText);
@@ -279,6 +588,7 @@ if(context_id.equals("suggest_context"))
 						cardTitle = "";
 						cardSubtitle = "";
 						cardImage = "";
+						cardUrl = "";
 						if(card.containsKey("title"))
 						{
 							cardTitle = card.get("title").toString();
@@ -290,15 +600,35 @@ if(context_id.equals("suggest_context"))
 						if(card.containsKey("image") && card.get("image") != null)
 						{
 							imageVal = card.get("image").toString();
-							if(imageVal != "" && imageVal != null)
+							if(imageVal != "" && imageVal != null && imageVal != "null")
 							{
 								cardImage = imageVal;
+							}
+						}
+						if(card.containsKey("actions"))
+						{
+							actionsList = card.get("actions");
+							if(actionsList != null && actionsList.size() > 0)
+							{
+								firstAction = actionsList.get(0);
+								if(firstAction != null && firstAction.containsKey("link"))
+								{
+									urlVal = firstAction.get("link").toString();
+									if(urlVal != "" && urlVal != null && urlVal != "null")
+									{
+										cardUrl = urlVal;
+									}
+								}
 							}
 						}
 						replyText = cardIndex.toString() + ". " + cardTitle;
 						if(cardSubtitle != "")
 						{
 							replyText = replyText + " - " + cardSubtitle;
+						}
+						if(cardUrl != "")
+						{
+							replyText = replyText + "\n🔗 " + cardUrl;
 						}
 						replyMap = Map();
 						replyMap.put("text",replyText);
@@ -521,6 +851,7 @@ if(context_id.equals("event_context"))
 					cardTitle = "";
 					cardSubtitle = "";
 					cardImage = "";
+					cardUrl = "";
 					if(card.containsKey("title"))
 					{
 						cardTitle = card.get("title").toString();
@@ -532,15 +863,35 @@ if(context_id.equals("event_context"))
 					if(card.containsKey("image") && card.get("image") != null)
 					{
 						imageVal = card.get("image").toString();
-						if(imageVal != "" && imageVal != null)
+						if(imageVal != "" && imageVal != null && imageVal != "null")
 						{
 							cardImage = imageVal;
+						}
+					}
+					if(card.containsKey("actions"))
+					{
+						actionsList = card.get("actions");
+						if(actionsList != null && actionsList.size() > 0)
+						{
+							firstAction = actionsList.get(0);
+							if(firstAction != null && firstAction.containsKey("link"))
+							{
+								urlVal = firstAction.get("link").toString();
+								if(urlVal != "" && urlVal != null && urlVal != "null")
+								{
+									cardUrl = urlVal;
+								}
+							}
 						}
 					}
 					replyText = cardIndex.toString() + ". " + cardTitle;
 					if(cardSubtitle != "")
 					{
 						replyText = replyText + " - " + cardSubtitle;
+					}
+					if(cardUrl != "")
+					{
+						replyText = replyText + " → " + cardUrl;
 					}
 					replyMap = Map();
 					replyMap.put("text",replyText);
@@ -635,6 +986,7 @@ if(context_id.equals("event_context"))
 						cardTitle = "";
 						cardSubtitle = "";
 						cardImage = "";
+						cardUrl = "";
 						if(card.containsKey("title"))
 						{
 							cardTitle = card.get("title").toString();
@@ -646,15 +998,35 @@ if(context_id.equals("event_context"))
 						if(card.containsKey("image") && card.get("image") != null)
 						{
 							imageVal = card.get("image").toString();
-							if(imageVal != "" && imageVal != null)
+							if(imageVal != "" && imageVal != null && imageVal != "null")
 							{
 								cardImage = imageVal;
+							}
+						}
+						if(card.containsKey("actions"))
+						{
+							actionsList = card.get("actions");
+							if(actionsList != null && actionsList.size() > 0)
+							{
+								firstAction = actionsList.get(0);
+								if(firstAction != null && firstAction.containsKey("link"))
+								{
+									urlVal = firstAction.get("link").toString();
+									if(urlVal != "" && urlVal != null && urlVal != "null")
+									{
+										cardUrl = urlVal;
+									}
+								}
 							}
 						}
 						replyText = cardIndex.toString() + ". " + cardTitle;
 						if(cardSubtitle != "")
 						{
 							replyText = replyText + " - " + cardSubtitle;
+						}
+						if(cardUrl != "")
+						{
+							replyText = replyText + "\n🔗 " + cardUrl;
 						}
 						replyMap = Map();
 						replyMap.put("text",replyText);
@@ -893,6 +1265,7 @@ if(context_id.equals("combo_context"))
 				cardTitle = "";
 				cardSubtitle = "";
 				cardImage = "";
+				cardUrl = "";
 				if(card.containsKey("title"))
 				{
 					cardTitle = card.get("title").toString();
@@ -904,15 +1277,35 @@ if(context_id.equals("combo_context"))
 				if(card.containsKey("image") && card.get("image") != null)
 				{
 					imageVal = card.get("image").toString();
-					if(imageVal != "" && imageVal != null)
+					if(imageVal != "" && imageVal != null && imageVal != "null")
 					{
 						cardImage = imageVal;
+					}
+				}
+				if(card.containsKey("actions"))
+				{
+					actionsList = card.get("actions");
+					if(actionsList != null && actionsList.size() > 0)
+					{
+						firstAction = actionsList.get(0);
+						if(firstAction != null && firstAction.containsKey("link"))
+						{
+							urlVal = firstAction.get("link").toString();
+							if(urlVal != "" && urlVal != null && urlVal != "null")
+							{
+								cardUrl = urlVal;
+							}
+						}
 					}
 				}
 				replyText = cardIndex.toString() + ". " + cardTitle;
 				if(cardSubtitle != "")
 				{
 					replyText = replyText + " - " + cardSubtitle;
+				}
+				if(cardUrl != "")
+				{
+					replyText = replyText + " → " + cardUrl;
 				}
 				replyMap = Map();
 				replyMap.put("text",replyText);

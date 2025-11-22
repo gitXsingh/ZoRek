@@ -268,7 +268,13 @@ def create_bot_routes(
             try:
                 if category == "movies":
                     genre = normalize(safe_get(prefs, "genre", ""))
-                    min_imdb = float(safe_get(prefs, "minImdb", 0) or 0)
+                    min_imdb_raw = safe_get(prefs, "minImdb", "") or ""
+                    # Handle string values like "7.0" or "7.0+" from Deluge
+                    try:
+                        min_imdb_str = str(min_imdb_raw).replace("+", "").strip()
+                        min_imdb = float(min_imdb_str) if min_imdb_str else 0.0
+                    except (ValueError, TypeError):
+                        min_imdb = 0.0
                     year = normalize(safe_get(prefs, "year", ""))
                     logger.info(f"Fetching movies: genre='{genre}', min_imdb={min_imdb}, year='{year}'")
                     print(f"   🎬 Fetching movies: genre='{genre}', min_imdb={min_imdb}, year='{year}'")
