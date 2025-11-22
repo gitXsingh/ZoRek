@@ -324,12 +324,14 @@ if(context_id.equals("suggest_context"))
 			}
 			if(minImdb != "" && !minImdb.equalsIgnoreCase("skip") && !minImdb.equalsIgnoreCase("any rating"))
 			{
-				minImdbVal = minImdb.replace("+","").replace(" ","");
+				minImdbVal = minImdb.replaceAll("\\+","");
+				minImdbVal = minImdbVal.replaceAll(" ","");
 				prefs.put("minImdb",minImdbVal);
 			}
 			if(year != "" && !year.equalsIgnoreCase("skip") && !year.equalsIgnoreCase("any year"))
 			{
-				yearVal = year.replace("+","").replace(" ","");
+				yearVal = year.replaceAll("\\+","");
+				yearVal = yearVal.replaceAll(" ","");
 				prefs.put("year",yearVal);
 			}
 		}
