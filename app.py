@@ -1372,7 +1372,7 @@ def home():
         </section>
 
         <section class="chatbox">
-            <div class="tool-card" style="max-width:600px;margin:0 auto;">
+            <div class="tool-card" id="spotifyCard" style="max-width:600px;margin:0 auto;display:none;">
                 <h2>🎵 Spotify Integration</h2>
                 <p class="muted">Connect Spotify to get better music recommendations and direct track links.</p>
                 <div id="spotifyStatus" style="margin:1rem 0;padding:0.75rem;background:rgba(255,255,255,0.05);border-radius:8px;">
@@ -1506,11 +1506,42 @@ def home():
     };
 
     const checkSpotifyStatus = async () => {
+        const cardEl = document.getElementById("spotifyCard");
+        if(!cardEl) return;
+        
         try {
+            // First check if Spotify OAuth is configured by checking status endpoint first
+            // Then verify start endpoint is available
+            try {
+                const startRes = await fetch("/oauth/spotify/start");
+                if(!startRes.ok || startRes.status === 400) {
+                    // OAuth not configured, hide the card
+                    const errorData = await startRes.json().catch(() => ({}));
+                    if(errorData.error && errorData.error.includes("not configured")) {
+                        cardEl.style.display = "none";
+                        return;
+                    }
+                }
+            } catch (err) {
+                // Can't check, hide card to be safe
+                cardEl.style.display = "none";
+                return;
+            }
+            
+            // If configured, check status
             const res = await fetch("/oauth/spotify/status");
+            if(!res.ok) {
+                cardEl.style.display = "none";
+                return;
+            }
+            
             const data = await res.json();
             const statusEl = document.getElementById("spotifyStatus");
             const btnEl = document.getElementById("spotifyBtn");
+            
+            // Show card since Spotify is configured
+            cardEl.style.display = "block";
+            
             if(data.connected) {
                 statusEl.innerHTML = '<p style="color:#4ade80;">✅ Connected to Spotify</p>';
                 btnEl.textContent = "Reconnect to Spotify";
@@ -1521,12 +1552,24 @@ def home():
                 btnEl.style.background = "";
             }
         } catch (err) {
-            console.error(err);
+            console.error("Spotify status check failed:", err);
+            cardEl.style.display = "none";
         }
     };
 
-    const handleSpotifyAuth = () => {
-        window.location.href = "/oauth/spotify/start";
+    const handleSpotifyAuth = async () => {
+        try {
+            // Check if Spotify is configured before redirecting
+            const res = await fetch("/oauth/spotify/start");
+            if(res.ok) {
+                window.location.href = "/oauth/spotify/start";
+            } else {
+                const data = await res.json();
+                alert("Spotify OAuth is not configured. " + (data.error || "Please contact administrator."));
+            }
+        } catch (err) {
+            alert("Unable to connect to Spotify. Please try again later.");
+        }
     };
 
     const openSalesIQ = () => {

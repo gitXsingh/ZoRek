@@ -43,3 +43,7 @@ Thumbs.db
 # Vite
 .vite/
 dist/
+
+# Secrets / Setup files with credentials
+RENDER_ENV_VARS.md
+SPOTIFY_SETUP.md
