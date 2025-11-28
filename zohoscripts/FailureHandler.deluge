@@ -1,15 +1,7 @@
-// Failure Handler
 response = Map();
+mainOptions = {"Suggest Something","Book an Event","My Pick Combo","Connect to Spotify","Connect with human"};
 
-info "🟥 Failure handler triggered. cause=" + cause + " failed_response=" + failed_response;
-
-// Common suggestion options (used throughout handler)
-mainOptions = Collection();
-mainOptions.insert("Suggest Something");
-mainOptions.insert("Book an Event");
-mainOptions.insert("My Pick Combo");
-mainOptions.insert("Connect with human");
-
+// extract error code from failure cause
 code = 0;
 if(cause != null && cause.containsKey("code"))
 {
@@ -23,7 +15,7 @@ if(cause != null && cause.containsKey("code"))
 	}
 }
 
-// Handle forward action failures
+// handle forward action failures
 if(failed_response != null && failed_response.containsKey("action") && failed_response.get("action").toString().equalsIgnoreCase("forward"))
 {
 	if(code == 1001)
@@ -49,7 +41,7 @@ if(failed_response != null && failed_response.containsKey("action") && failed_re
 	}
 }
 
-// Handle reply execution issues (length / general failure)
+// handle reply execution errors
 if(code == 1005)
 {
 	response.put("action","reply");
@@ -65,9 +57,8 @@ else if(code == 1007)
 	return response;
 }
 
-// Generic fallback reply with suggestions to help user
+// generic error fallback
 response.put("action","reply");
 response.put("replies",{"Sorry, something went wrong. Please try again later."});
 response.put("suggestions",mainOptions);
 return response;
-

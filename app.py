@@ -1273,7 +1273,6 @@ def home():
         <span class="eyebrow">ZoRek · Entertainment One-Stop</span>
         <h1>Discover, plan, and vibe — cards + chatbot in one place.</h1>
         <p>ZoRek blends curated APIs, Zoho SalesIQ automations, Spotify OAuth, AI commentary, and Google Sheet logging into a single flow. Drive everything from the chatbot <em>or</em> from the panels below.</p>
-        <p><a href="/scripts">📜 View integration scripts</a></p>
     </header>
 
     <main class="content">
@@ -1372,7 +1371,7 @@ def home():
         </section>
 
         <section class="chatbox">
-            <div class="tool-card" id="spotifyCard" style="max-width:600px;margin:0 auto;display:none;">
+            <div class="tool-card" id="spotifyCard" style="max-width:600px;margin:0 auto;display:block;">
                 <h2>🎵 Spotify Integration</h2>
                 <p class="muted">Connect Spotify to get better music recommendations and direct track links.</p>
                 <div id="spotifyStatus" style="margin:1rem 0;padding:0.75rem;background:rgba(255,255,255,0.05);border-radius:8px;">
@@ -1510,37 +1509,10 @@ def home():
         if(!cardEl) return;
         
         try {
-            // First check if Spotify OAuth is configured by checking status endpoint first
-            // Then verify start endpoint is available
-            try {
-                const startRes = await fetch("/oauth/spotify/start");
-                if(!startRes.ok || startRes.status === 400) {
-                    // OAuth not configured, hide the card
-                    const errorData = await startRes.json().catch(() => ({}));
-                    if(errorData.error && errorData.error.includes("not configured")) {
-                        cardEl.style.display = "none";
-                        return;
-                    }
-                }
-            } catch (err) {
-                // Can't check, hide card to be safe
-                cardEl.style.display = "none";
-                return;
-            }
-            
-            // If configured, check status
             const res = await fetch("/oauth/spotify/status");
-            if(!res.ok) {
-                cardEl.style.display = "none";
-                return;
-            }
-            
-            const data = await res.json();
+            const data = res.ok ? await res.json() : {connected: false};
             const statusEl = document.getElementById("spotifyStatus");
             const btnEl = document.getElementById("spotifyBtn");
-            
-            // Show card since Spotify is configured
-            cardEl.style.display = "block";
             
             if(data.connected) {
                 statusEl.innerHTML = '<p style="color:#4ade80;">✅ Connected to Spotify</p>';
@@ -1552,8 +1524,10 @@ def home():
                 btnEl.style.background = "";
             }
         } catch (err) {
-            console.error("Spotify status check failed:", err);
-            cardEl.style.display = "none";
+            const statusEl = document.getElementById("spotifyStatus");
+            const btnEl = document.getElementById("spotifyBtn");
+            if(statusEl) statusEl.innerHTML = '<p style="color:#f87171;">❌ Not connected</p>';
+            if(btnEl) btnEl.textContent = "Connect to Spotify";
         }
     };
 
@@ -1611,241 +1585,10 @@ def home():
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
+# handler scripts endpoint removed - not publicly accessible
 @app.route('/scripts')
 def scripts_page():
-    """Page to view and copy Deluge scripts for Zoho SalesIQ Bot"""
-    import os
-    import html as html_module
-    
-    scripts_dir = os.path.join(os.path.dirname(__file__), 'zohoscripts')
-    scripts_info = []
-    
-    script_files = [
-        ('TriggerHandler.deluge', 'Trigger Handler', 'Runs when the chat starts'),
-        ('MessageHandler.deluge', 'Message Handler', 'Handles user messages and routes to contexts'),
-        ('ContextHandler.deluge', 'Context Handler', 'Handles all bot contexts (suggest, events, combo)'),
-        ('FailureHandler.deluge', 'Failure Handler', 'Handles errors and provides fallback messages'),
-    ]
-    
-    for filename, title, description in script_files:
-        filepath = os.path.join(scripts_dir, filename)
-        if os.path.exists(filepath):
-            with open(filepath, 'r', encoding='utf-8') as f:
-                content = f.read()
-            scripts_info.append({
-                'filename': filename,
-                'title': title,
-                'description': description,
-                'content': content,
-                'size': len(content)
-            })
-    
-    # Build scripts HTML
-    scripts_html = ""
-    for script in scripts_info:
-        scripts_html += f"""
-        <div class="script-card">
-            <div class="script-header">
-                <div>
-                    <h3 class="script-title">{html_module.escape(script['title'])}</h3>
-                    <p class="script-description">{html_module.escape(script['description'])}</p>
-                    <div class="script-meta">
-                        <span>File: <code>{html_module.escape(script['filename'])}</code></span>
-                        <span>Size: {script['size']:,} characters</span>
-                    </div>
-                </div>
-                <button class="copy-btn" onclick="copyScript('{script['filename']}')">📋 Copy Script</button>
-            </div>
-            <div class="script-content" id="{script['filename']}">{html_module.escape(script['content'])}</div>
-        </div>
-"""
-    
-    html = f"""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZoRek · Deluge Scripts for Zoho SalesIQ Bot</title>
-    <style>
-        :root {{ color-scheme: dark; }}
-        * {{ box-sizing: border-box; font-family: "Inter","Segoe UI",monospace; }}
-        body {{
-            margin: 0;
-            padding: 2rem;
-            background: linear-gradient(135deg, #101428 0%, #181f3a 60%, #101428 100%);
-            color: #f3f5ff;
-            min-height: 100vh;
-        }}
-        .container {{
-            max-width: 1200px;
-            margin: 0 auto;
-        }}
-        header {{
-            text-align: center;
-            margin-bottom: 3rem;
-        }}
-        h1 {{
-            margin: 0 0 0.5rem;
-            font-size: 2rem;
-        }}
-        .subtitle {{
-            color: rgba(243,245,255,0.7);
-            margin-bottom: 1rem;
-        }}
-        .back-link {{
-            display: inline-block;
-            margin-top: 1rem;
-            color: rgba(243,245,255,0.8);
-            text-decoration: none;
-            padding: 0.5rem 1rem;
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 6px;
-            transition: all 0.2s;
-        }}
-        .back-link:hover {{
-            background: rgba(255,255,255,0.1);
-        }}
-        .script-card {{
-            background: rgba(4,6,14,0.7);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 30px rgba(5,8,20,0.4);
-        }}
-        .script-header {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }}
-        .script-title {{
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin: 0;
-        }}
-        .script-description {{
-            color: rgba(243,245,255,0.6);
-            font-size: 0.9rem;
-            margin: 0.5rem 0;
-        }}
-        .script-meta {{
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            font-size: 0.85rem;
-            color: rgba(243,245,255,0.5);
-        }}
-        .copy-btn {{
-            background: #4a90e2;
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-        }}
-        .copy-btn:hover {{
-            background: #357abd;
-        }}
-        .copy-btn.copied {{
-            background: #2ecc71;
-        }}
-        .script-content {{
-            background: #0a0e1a;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            padding: 1rem;
-            overflow-x: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
-            line-height: 1.5;
-            color: #e8e8e8;
-            max-height: 500px;
-            overflow-y: auto;
-            white-space: pre;
-        }}
-        .instructions {{
-            background: rgba(74, 144, 226, 0.1);
-            border: 1px solid rgba(74, 144, 226, 0.3);
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }}
-        .instructions h2 {{
-            margin-top: 0;
-            font-size: 1.25rem;
-        }}
-        .instructions ol {{
-            margin: 0;
-            padding-left: 1.5rem;
-        }}
-        .instructions li {{
-            margin: 0.5rem 0;
-            line-height: 1.6;
-        }}
-        code {{
-            background: rgba(0,0,0,0.3);
-            padding: 0.2rem 0.4rem;
-            border-radius: 3px;
-            font-size: 0.9em;
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>📜 ZoRek Deluge Scripts</h1>
-            <p class="subtitle">Copy these scripts into your Zoho SalesIQ Bot configuration</p>
-            <a href="/" class="back-link">← Back to Home</a>
-        </header>
-        
-        <div class="instructions">
-            <h2>📋 How to Add Scripts to Zoho SalesIQ Bot:</h2>
-            <ol>
-                <li>Log in to your <strong>Zoho SalesIQ</strong> dashboard</li>
-                <li>Go to <code>Settings → Bots → Scripts</code></li>
-                <li>For each handler below, click <strong>Copy</strong> and paste into the corresponding handler in SalesIQ:
-                    <ul>
-                        <li><strong>Trigger Handler</strong> → Copy to "Trigger" section</li>
-                        <li><strong>Message Handler</strong> → Copy to "Message" section</li>
-                        <li><strong>Context Handler</strong> → Copy to "Context" section</li>
-                        <li><strong>Failure Handler</strong> → Copy to "Failure" section</li>
-                    </ul>
-                </li>
-                <li>Click <strong>Save</strong> and <strong>Publish</strong> your bot</li>
-                <li>Make sure your backend URL is: <code>https://zorek.onrender.com</code></li>
-            </ol>
-        </div>
-{scripts_html}
-    </div>
-    
-    <script>
-        function copyScript(filename) {{
-            const content = document.getElementById(filename).textContent;
-            navigator.clipboard.writeText(content).then(() => {{
-                const btn = event.target;
-                const originalText = btn.textContent;
-                btn.textContent = '✅ Copied!';
-                btn.classList.add('copied');
-                setTimeout(() => {{
-                    btn.textContent = originalText;
-                    btn.classList.remove('copied');
-                }}, 2000);
-            }}).catch(err => {{
-                alert('Failed to copy. Please select and copy manually.');
-            }});
-        }}
-    </script>
-</body>
-</html>
-"""
-    
-    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    return redirect('/')
 
 
 if __name__ == '__main__':

@@ -1,20 +1,14 @@
 response = Map();
+// extract message text from input
 msg = "";
-
 if(message != null && message.containsKey("text"))
 {
 	msg = message.get("text").toString().trim();
 }
 
-info "🟦 message handler invoked. operation=" + operation + " text=" + msg;
+mainOptions = {"Suggest Something","Book an Event","My Pick Combo","Connect to Spotify","Connect with human"};
 
-mainOptions = Collection();
-mainOptions.insert("Suggest Something");
-mainOptions.insert("Book an Event");
-mainOptions.insert("My Pick Combo");
-mainOptions.insert("Connect with human");
-
-// When conversation just started, mirror trigger greeting so visitor isn't stuck
+// handle empty message when chat starts
 if(operation != null && operation.equalsIgnoreCase("chat") && msg == "")
 {
 	response.put("action","reply");
@@ -23,7 +17,7 @@ if(operation != null && operation.equalsIgnoreCase("chat") && msg == "")
 	return response;
 }
 
-// If visitor sent nothing (e.g., quick reply cleared), nudge them
+// handle empty message
 if(msg == "")
 {
 	response.put("action","reply");
@@ -32,7 +26,7 @@ if(msg == "")
 	return response;
 }
 
-// Handle primary commands
+// route to appropriate context based on user message
 if(msg.equalsIgnoreCase("Suggest Something"))
 {
 	response.put("action","context");
@@ -58,7 +52,7 @@ else if(msg.equalsIgnoreCase("Book an Event"))
 	q2 = Map();
 	q2.put("name","city");
 	q2.put("replies",{"Which city should I search in? (e.g., Mumbai, Delhi)"});
-	q2.put("suggestions",{"Mumbai","Delhi","Bengaluru","Hyderabad","Chennai","Pune","Kolkata","Ahmedabad","Jaipur","Lucknow","Surat","Nagpur","Indore","Thane","Bhopal","Visakhapatnam","Patna","Vadodara","Ghaziabad","Ludhiana","Agra","Nashik","Faridabad","Meerut","Rajkot","Varanasi","Srinagar","Amritsar","Noida","Ranchi","Chandigarh","Raipur","Gwalior","Jodhpur","Coimbatore","Madurai","Vijayawada","Solapur","Tiruchirappalli","Bareilly","Moradabad","Mysore","Tiruppur","Gurgaon","Aligarh","Jalandhar","Bhubaneswar","Salem","Warangal","Guntur","Bhiwandi","Saharanpur","Gorakhpur","Bikaner","Amravati","Noida","Jamshedpur","Bhilai","Cuttack","Firozabad","Kochi","Nellore","Bhavnagar","Dehradun","Durgapur","Asansol","Rourkela","Nanded","Kolhapur","Ajmer","Gulbarga","Jamnagar","Ujjain","Loni","Siliguri","Jhansi","Ulhasnagar","Jammu","Sangli-Miraj","Mangalore","Erode","Belgaum","Ambattur","Tirunelveli","Malegaon","Gaya","Jalgaon","Udaipur","Maheshtala","Davangere","Kozhikode","Akola","Kurnool","Rajahmundry","Bokaro","South Dumdum","Bellary","Patiala","Gopalpur","Agartala","Bhagalpur","Muzaffarnagar","Bhatpara","Panihati","Latur","Dhule","Rohtak","Korba","Bilaspur","Muzaffarpur","Ahmednagar","Mathura","Kollam","Avadi","Kadapa","Kamptee","Sambalpur","Bilaspur","Shahjahanpur","Satara","Rampur","Shivamogga","Chandrapur","Junagadh","Thrissur","Alwar","Bardhaman","Kulti","Kakinada","Nizamabad","Parbhani","Tumkur","Khammam","Ozhukarai","Bihar Sharif","Panipat","Darbhanga","Bally","Aizawl","Dewas","Ichalkaranji","Tirupati","Karnal","Bathinda","Jalna","Barasat","Kirari Suleman Nagar","Purnia","Satna","Mau","Sonipat","Farrukhabad","Sagar","Rourkela","Durg","Imphal","Ratlam","Hapur","Anantapur","Arrah","Karimnagar","Etawah","Bharatpur","Begusarai","New Delhi","Chhapra","Kadapa","Buxar","Jehanabad","Phusro","Dindigul","Gandhinagar","Baranagar","Tiruvottiyur","Puducherry","Sikar","Thoothukudi","Rewa","Mirzapur","Raichur","Pali","Khora","Vejalpur","Kottayam","Gangtok","Thiruvananthapuram","Port Blair","Kavaratti","Daman","Diu","Silvassa","Panaji","Shillong","Aizawl","Itanagar","Kohima","Imphal","Agartala","Dispur"});
+	q2.put("suggestions",{"Mumbai","Delhi","Bengaluru","Hyderabad","Chennai","Pune","Kolkata","Ahmedabad","Jaipur","Lucknow","Surat","Nagpur","Indore","Thane","Bhopal","Visakhapatnam","Patna","Vadodara","Ghaziabad","Ludhiana","Agra","Nashik","Faridabad","Meerut","Rajkot","Varanasi","Srinagar","Amritsar","Noida","Ranchi","Chandigarh","Raipur","Gwalior","Jodhpur","Coimbatore","Madurai","Vijayawada","Solapur","Tiruchirappalli","Bareilly","Moradabad","Mysore","Tiruppur","Gurgaon","Aligarh","Jalandhar","Bhubaneswar","Salem","Warangal","Guntur","Bhiwandi","Saharanpur","Gorakhpur","Bikaner","Amravati","Jamshedpur","Bhilai","Cuttack","Firozabad","Kochi","Nellore","Bhavnagar","Dehradun","Durgapur","Asansol","Rourkela","Nanded","Kolhapur","Ajmer","Gulbarga","Jamnagar","Ujjain","Loni","Siliguri","Jhansi","Ulhasnagar","Jammu","Sangli-Miraj","Mangalore","Erode","Belgaum","Ambattur","Tirunelveli","Malegaon","Gaya","Jalgaon","Udaipur","Maheshtala","Davangere","Kozhikode","Akola","Kurnool","Rajahmundry","Bokaro","South Dumdum","Bellary","Patiala","Gopalpur","Agartala","Bhagalpur","Muzaffarnagar","Bhatpara","Panihati","Latur","Dhule","Rohtak","Korba","Bilaspur","Muzaffarpur","Ahmednagar","Mathura","Kollam","Avadi","Kadapa","Kamptee","Sambalpur","Shahjahanpur","Satara","Rampur","Shivamogga","Chandrapur","Junagadh","Thrissur","Alwar","Bardhaman","Kulti","Kakinada","Nizamabad","Parbhani","Tumkur","Khammam","Ozhukarai","Bihar Sharif","Panipat","Darbhanga","Bally","Aizawl","Dewas","Ichalkaranji","Tirupati","Karnal","Bathinda","Jalna","Barasat","Kirari Suleman Nagar","Purnia","Satna","Mau","Sonipat","Farrukhabad","Sagar","Durg","Imphal","Ratlam","Hapur","Anantapur","Arrah","Karimnagar","Etawah","Bharatpur","Begusarai","New Delhi","Chhapra","Buxar","Jehanabad","Phusro","Dindigul","Gandhinagar","Baranagar","Tiruvottiyur","Puducherry","Sikar","Thoothukudi","Rewa","Mirzapur","Raichur","Pali","Khora","Vejalpur","Kottayam","Gangtok","Thiruvananthapuram","Port Blair","Kavaratti","Daman","Diu","Silvassa","Panaji","Shillong","Aizawl","Itanagar","Kohima","Imphal","Agartala","Dispur"});
 	questions.insert(q1);
 	questions.insert(q2);
 	response.put("questions",questions);
@@ -69,33 +63,35 @@ else if(msg.equalsIgnoreCase("My Pick Combo"))
 	response.put("action","context");
 	response.put("context_id","combo_context");
 	questions = Collection();
-
 	qMood = Map();
 	qMood.put("name","mood");
 	qMood.put("replies",{"What's your mood right now?"});
 	qMood.put("suggestions",{"Happy","Chill","Romantic","Energetic","Mystery","Adventurous"});
-
 	qMovie = Map();
 	qMovie.put("name","movieGenre");
 	qMovie.put("replies",{"Preferred movie vibe? (e.g., Action, Drama)"});
 	qMovie.put("suggestions",{"Action","Drama","Comedy","Thriller","Sci-Fi","Surprise Me"});
-
 	qSong = Map();
 	qSong.put("name","songType");
 	qSong.put("replies",{"Preferred song style? (e.g., Pop, Rock)"});
 	qSong.put("suggestions",{"Pop","Rock","Hip-Hop","Lo-fi","Classical","EDM"});
-
 	qDiet = Map();
 	qDiet.put("name","diet");
 	qDiet.put("replies",{"Diet preference?"});
 	qDiet.put("suggestions",{"Veg","Non-Veg","Vegan","Keto","Any"});
-
 	questions.insert(qMood);
 	questions.insert(qMovie);
 	questions.insert(qSong);
 	questions.insert(qDiet);
-
 	response.put("questions",questions);
+	return response;
+}
+else if(msg.equalsIgnoreCase("Connect to Spotify"))
+{
+	response.put("action","reply");
+	spotifyUrl = "https://zorek.onrender.com/oauth/spotify/start";
+	response.put("replies",{"Connect to Spotify to get better music recommendations and direct track links.","Click here to connect: " + spotifyUrl});
+	response.put("suggestions",mainOptions);
 	return response;
 }
 else if(msg.equalsIgnoreCase("Connect with human"))
@@ -112,7 +108,7 @@ else if(msg.equalsIgnoreCase("End chat"))
 	return response;
 }
 
-// Check if message is a number (1-10) - likely a card selection
+// check if user selected a card number
 isNumber = false;
 selectedNumber = 0;
 if(msg != "" && msg.length() <= 2)
@@ -131,7 +127,7 @@ if(msg != "" && msg.length() <= 2)
 	}
 }
 
-// If user selected a card number, retrieve the URL from session and provide it directly
+// retrieve card url from session if number was selected
 if(isNumber)
 {
 	response = Map();
@@ -139,7 +135,6 @@ if(isNumber)
 	selectedUrl = "";
 	try
 	{
-		// Get portal name from request, fallback to empty string
 		portalName = "";
 		if(request != null && request.containsKey("portal_name"))
 		{
@@ -149,8 +144,6 @@ if(isNumber)
 		{
 			portalName = request.get("portalName").toString();
 		}
-		
-		// If portal name is available, retrieve from session
 		if(portalName != "" && portalName != null)
 		{
 			cardUrlsData = zoho.salesiq.visitorsession.get(portalName,"zorek_cards");
@@ -167,19 +160,13 @@ if(isNumber)
 				}
 			}
 		}
-		else
-		{
-			info "🟦 MessageHandler: No portal name available, cannot retrieve card URLs from session";
-		}
 	}
 	catch(sessionErr)
 	{
-		info "🟥 MessageHandler session retrieval error " + sessionErr;
 	}
-	
 	if(selectedUrl != "" && selectedUrl != null)
 	{
-		response.put("replies",{"Great choice! Here's the direct link:\n🔗 " + selectedUrl + "\n\nFeel free to explore more options below."});
+		response.put("replies",{"Great choice! Here's the direct link:\n" + selectedUrl + "\n\nFeel free to explore more options below."});
 	}
 	else
 	{
@@ -189,10 +176,8 @@ if(isNumber)
 	return response;
 }
 
-// Default message if no known command
 response = Map();
 response.put("action","reply");
 response.put("replies",{"Please choose an option to continue."});
 response.put("suggestions",mainOptions);
 return response;
-

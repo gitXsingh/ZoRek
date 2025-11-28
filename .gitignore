@@ -47,3 +47,7 @@ dist/
 # Secrets / Setup files with credentials
 RENDER_ENV_VARS.md
 SPOTIFY_SETUP.md
+
+# Removable files and documentation
+removable/
+API_KEYS_STATUS.md

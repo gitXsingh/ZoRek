@@ -1,9 +1,7 @@
-info "🟢 trigger handler invoked. visitor=" + visitor + " request=" + request;
-
+// initial greeting when chat starts
 response = Map();
 response.put("action","reply");
-response.put("replies",{"Hi! I'm ZoRek 🎬 your entertainment assistant.","What would you like to explore today?"});
-options = {"Suggest Something","Book an Event","My Pick Combo","Connect with human"};
+response.put("replies",{"Hi! I'm ZoRek, your entertainment assistant.","What would you like to explore today?"});
+options = {"Suggest Something","Book an Event","My Pick Combo","Connect to Spotify","Connect with human"};
 response.put("suggestions",options);
 return response;
-

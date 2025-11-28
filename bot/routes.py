@@ -495,8 +495,8 @@ def create_bot_routes(
                         "Name": "",  # Not available from bot endpoint
                         "Email": "",  # Not available from bot endpoint
                         "Choice": category.title(),
-                        "Genre": genre if genre else category.title(),
-                        "Mood": mood if mood else "",
+                        "Genre": genre.title() if genre else category.title(),
+                        "Mood": mood.title() if mood else "",
                         "Suggestion": ", ".join(suggestions_list) if suggestions_list else "No suggestions",
                         "Endpoint": "suggest_cards",
                         "Category": category.title(),
@@ -505,10 +505,13 @@ def create_bot_routes(
                         "ResultsCount": len(cards),
                         "Timestamp": datetime.datetime.utcnow().isoformat()
                     }
-                    requests.post(SHEET_BEST_URL, json=log_data, timeout=3)
-                    logger.info(f"✅ Logged to sheet: {category.title()} - {len(cards)} results")
+                    response = requests.post(SHEET_BEST_URL, json=log_data, timeout=5)
+                    if response.status_code in [200, 201]:
+                        logger.info(f"✅ Logged to sheet: {category.title()} - {len(cards)} results")
+                    else:
+                        logger.warning(f"⚠️ Sheet logging returned {response.status_code}: {response.text[:200]}")
             except Exception as e:
-                logger.warning(f"⚠️ Logging failed: {e}")
+                logger.warning(f"⚠️ Logging failed: {str(e)}")
                 pass  # Non-blocking
             
             return jsonify(multiple_product_payload(f"Here are some {category.title()} suggestions:", cards))
@@ -716,10 +719,13 @@ def create_bot_routes(
                         "ResultsCount": len(cards),
                         "Timestamp": datetime.datetime.utcnow().isoformat()
                     }
-                    requests.post(SHEET_BEST_URL, json=log_data, timeout=3)
-                    logger.info(f"✅ Logged to sheet: {category.title()} in {city} - {len(cards)} results")
+                    response = requests.post(SHEET_BEST_URL, json=log_data, timeout=5)
+                    if response.status_code in [200, 201]:
+                        logger.info(f"✅ Logged to sheet: {category.title()} in {city} - {len(cards)} results")
+                    else:
+                        logger.warning(f"⚠️ Sheet logging returned {response.status_code}: {response.text[:200]}")
             except Exception as e:
-                logger.warning(f"⚠️ Logging failed: {e}")
+                logger.warning(f"⚠️ Logging failed: {str(e)}")
                 pass  # Non-blocking
             
             return jsonify(response_data)
@@ -934,10 +940,13 @@ def create_bot_routes(
                         "ResultsCount": len(cards),
                         "Timestamp": datetime.datetime.utcnow().isoformat()
                     }
-                    requests.post(SHEET_BEST_URL, json=log_data, timeout=3)
-                    logger.info(f"✅ Logged to sheet: Combo - {mood} - {len(cards)} results")
+                    response = requests.post(SHEET_BEST_URL, json=log_data, timeout=5)
+                    if response.status_code in [200, 201]:
+                        logger.info(f"✅ Logged to sheet: Combo - {mood} - {len(cards)} results")
+                    else:
+                        logger.warning(f"⚠️ Sheet logging returned {response.status_code}: {response.text[:200]}")
             except Exception as e:
-                logger.warning(f"⚠️ Logging failed: {e}")
+                logger.warning(f"⚠️ Logging failed: {str(e)}")
                 pass  # Non-blocking
             
             payload = multiple_product_payload("Your personalized combo is ready!", cards)

@@ -1,14 +1,14 @@
 # ZoRek – Entertainment Bot 🎬🎵🍕
 
-ZoRek is an AI-powered entertainment chatbot built for the **Zoho SalesIQ platform**. It combines a Flask backend with a React frontend, providing personalized movie, book, game, food, and music recommendations through an interactive web chat interface.
+ZoRek is an entertainment chatbot built for **Zoho SalesIQ platform** that provides personalized recommendations for movies, books, games, food, and music, along with event booking capabilities. The bot consists of four Deluge handler scripts that work together to create a seamless conversational experience.
 
 **Live Demo**: https://zorek.onrender.com
 
 ## 🎯 Features
 
-- **Suggest Something**: Get recommendations for Movies, Books, Games, Food, and Music
-- **Book an Event**: Find concerts, talkshows, theater events, and movies near you
-- **My Pick**: Get a creative combination of Movie + Song + Food based on your mood
+- **Suggest Something**: Get recommendations for Movies, Books, Games, Food, and Music with preference collection
+- **Book an Event**: Find concerts, talkshows, theater events, and movies near you (200+ Indian cities)
+- **My Pick Combo**: Get a creative combination of Movie + Song + Food based on your mood
 - **OAuth 2.0 Integration**: Spotify authentication for personalized music recommendations
 - **AI Commentary**: Optional AI-powered fun blurbs (requires OpenAI API key)
 - **Google Sheets Logging**: All interactions are logged for analytics
@@ -18,7 +18,7 @@ ZoRek is an AI-powered entertainment chatbot built for the **Zoho SalesIQ platfo
 ### Prerequisites
 
 - Python 3.8 or higher
-- Node.js 18+ and npm
+- Node.js 18+ and npm (optional, for React frontend)
 - API keys for:
   - OMDb (required)
   - TMDB (required)
@@ -41,60 +41,112 @@ ZoRek is an AI-powered entertainment chatbot built for the **Zoho SalesIQ platfo
    pip install -r requirements.txt
    ```
 
-3. **Install Node.js dependencies**
+3. **Set up environment variables**
+   Create a `.env` file in the project root:
    ```bash
-   npm install
+   OMDB_KEY=your_omdb_key_here
+   TMDB_KEY=your_tmdb_key_here
+   SPOONACULAR_KEY=your_spoonacular_key_here
+   SHEET_BEST_URL=https://api.sheetbest.com/sheets/your_sheet_id_here
+   SPOTIFY_CLIENT_ID=your_spotify_client_id_here
+   SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
+   SPOTIFY_REDIRECT_URI=https://zorek.onrender.com/oauth/spotify/callback
+   SEATGEEK_CLIENT_ID=your_seatgeek_client_id_here
+   OPENAI_API_KEY=your_openai_api_key_here
    ```
 
-4. **Build React frontend**
+4. **Run the application**
    ```bash
-   npm run build
-   ```
-
-5. **Set up environment variables**
-   ```bash
-   cp env.example .env
-   # Edit .env and add your API keys
-   ```
-
-6. **Run the application**
-   ```bash
-   # Development mode (Flask + Vite dev server)
-   python app.py  # Terminal 1
-   npm run dev    # Terminal 2
-   
-   # Production mode (Flask serves React build)
    python app.py
    # or with gunicorn:
    gunicorn app:app
    ```
 
-7. **Access the application**
+5. **Access the application**
    - Local: http://localhost:5000
    - Live: https://zorek.onrender.com
 
-## 📋 Environment Variables
+## 📋 Zoho SalesIQ Bot Setup
 
-Copy `env.example` to `.env` and fill in your API keys:
+### Handler Scripts
 
-```bash
-OMDB_KEY=your_omdb_key_here
-TMDB_KEY=your_tmdb_key_here
-SPOONACULAR_KEY=your_spoonacular_key_here
-SHEET_BEST_URL=https://api.sheetbest.com/sheets/your_sheet_id_here
-SPOTIFY_CLIENT_ID=your_spotify_client_id_here
-SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
-SPOTIFY_REDIRECT_URI=https://zorek.onrender.com/oauth/spotify/callback
-SEATGEEK_CLIENT_ID=your_seatgeek_client_id_here
-OPENAI_API_KEY=your_openai_api_key_here
-```
+The bot consists of four Deluge handler scripts located in `zohoscripts/`:
+
+1. **TriggerHandler.deluge** - Initial greeting when chat starts
+2. **MessageHandler.deluge** - Routes user messages and handles card selections
+3. **ContextHandler.deluge** - Core logic for all bot contexts (suggest, events, combo)
+4. **FailureHandler.deluge** - Error handling and fallback messages
+
+### Installation Steps
+
+1. **Extract ZoRek_bot.zip** (contains all handler scripts)
+2. **Access Zoho SalesIQ Bot Builder**
+3. **Upload each handler script:**
+   - TriggerHandler.deluge → Trigger Handler section
+   - MessageHandler.deluge → Message Handler section
+   - ContextHandler.deluge → Context Handler section
+   - FailureHandler.deluge → Failure Handler section
+4. **Configure Backend URL:** Ensure `https://zorek.onrender.com` is accessible
+5. **Test Each Feature:**
+   - Suggest Something (all categories)
+   - Book an Event (various cities)
+   - My Pick Combo
+   - Connect to Spotify
+6. **Verify Session Storage:** Test card selection by number (1-10)
+
+For detailed documentation, see [ZoRek_Bot_Documentation.md](./ZoRek_Bot_Documentation.md)
 
 ## 🔌 API Endpoints
 
-### Main Endpoints
+### Bot Endpoints (For Zoho SalesIQ)
 
-#### `GET /`
-Renders the main chat interface.
+#### `POST /suggest_cards`
+Get suggestions in SalesIQ card format.
+
+**Request:**
+```json
+{
+  "category": "movies",
+  "prefs": {
+    "genre": "Action",
+    "minImdb": "7.0",
+    "year": "2015"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "type": "multiple-product",
+  "elements": [
+    {
+      "id": "card_1",
+      "title": "Inception (2010)",
+      "subtitle": "Sci-Fi · IMDb 8.8",
+      "image": "https://...",
+      "actions": [
+        {
+          "label": "View",
+          "type": "url",
+          "link": "https://www.imdb.com/title/tt1375666/"
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### `POST /events_cards`
+Get events in SalesIQ card format.
+
+**Request:**
+```json
+{
+  "category": "concerts",
+  "city": "Mumbai"
+}
+```
 
 #### `POST /recommendations`
 Get combined recommendations (Movie + Song + Food).
@@ -109,152 +161,10 @@ Get combined recommendations (Movie + Song + Food).
 }
 ```
 
-**Response:**
-```json
-{
-  "movie": {
-    "text": "🎬 Inception (2010)",
-    "url": "https://www.imdb.com/title/tt1375666/",
-    "image": "https://..."
-  },
-  "song": {
-    "text": "🎵 Bad Guy — Billie Eilish",
-    "url": "https://open.spotify.com/track/...",
-    "image": "https://..."
-  },
-  "food": {
-    "text": "🍕 Caprese Salad",
-    "url": "https://...",
-    "image": "https://..."
-  }
-}
-```
-
-#### `POST /suggest`
-Get suggestions for a specific category.
-
-**Request:**
-```json
-{
-  "category": "Movies",
-  "prefs": {
-    "genre": "Drama",
-    "minImdb": 7.0,
-    "year": "2019"
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "items": [
-    {
-      "text": "🎬 The Shawshank Redemption (1994) — ⭐ 9.3",
-      "url": "https://www.imdb.com/title/tt0111161/",
-      "poster": "https://...",
-      "imdbRating": "9.3",
-      "year": "1994"
-    }
-  ]
-}
-```
-
-#### `POST /events`
-Get events near a city.
-
-**Request:**
-```json
-{
-  "category": "Concerts",
-  "city": "Mumbai"
-}
-```
-
-**Response:**
-```json
-{
-  "items": [
-    {
-      "text": "📅 Arijit Singh Live — 2025-12-02 19:00 @ Wankhede Stadium",
-      "url": "https://seatgeek.com/..."
-    }
-  ]
-}
-```
-
-### SalesIQ Card Endpoints
-
-#### `POST /suggest_cards`
-Returns suggestions in SalesIQ card format.
-
-**Request:**
-```json
-{
-  "category": "Movies",
-  "prefs": {
-    "genre": "Action",
-    "minImdb": 7.0
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "cards": [
-    {
-      "title": "Inception (2010)",
-      "imageUrl": "https://...",
-      "description": "⭐ 8.8",
-      "action": {
-        "label": "View",
-        "url": "https://www.imdb.com/title/tt1375666/"
-      }
-    }
-  ]
-}
-```
-
-#### `POST /events_cards`
-Returns events in SalesIQ card format.
-
-**Request:**
-```json
-{
-  "category": "Concerts",
-  "city": "Mumbai"
-}
-```
-
-**Response:**
-```json
-{
-  "cards": [
-    {
-      "title": "Arijit Singh Live",
-      "imageUrl": null,
-      "description": "2025-12-02 19:00 @ Wankhede Stadium",
-      "action": {
-        "label": "Tickets",
-        "url": "https://seatgeek.com/..."
-      }
-    }
-  ]
-}
-```
-
 ### OAuth Endpoints
 
 #### `GET /oauth/spotify/start`
-Get Spotify authorization URL.
-
-**Response:**
-```json
-{
-  "auth_url": "https://accounts.spotify.com/authorize?..."
-}
-```
+Redirect to Spotify authorization page.
 
 #### `GET /oauth/spotify/callback`
 Handle Spotify OAuth callback.
@@ -266,229 +176,172 @@ Check Spotify connection status.
 ```json
 {
   "connected": true,
-  "mode": "app"
+  "mode": "user"
 }
 ```
 
 ### Utility Endpoints
 
-#### `GET /widget_detail?email=user@example.com`
-Get visitor data for SalesIQ operator widget.
-
-**Response:**
-```json
-{
-  "email": "user@example.com",
-  "lastChoice": "Movies",
-  "lastGenre": "Action",
-  "lastSuggestion": "Inception (2010)",
-  "timestamp": "2025-01-15T10:30:00",
-  "interactionCount": 1
-}
-```
-
 #### `GET /health_check`
 Check health status of all APIs.
-
-**Response:**
-```json
-{
-  "status": "ok",
-  "checks": {
-    "OMDb": "PASS",
-    "Books": "PASS",
-    "Spoonacular": "PASS",
-    "SheetBest": "PASS",
-    "Local": "PASS",
-    "TMDB": "PASS",
-    "Spotify": "PASS"
-  },
-  "timestamp": "2025-01-15T10:30:00"
-}
-```
 
 #### `POST /ai_commentary`
 Get AI-generated commentary (requires OpenAI API key).
 
-**Request:**
-```json
-{
-  "movie": {"text": "Inception (2010)"},
-  "song": {"text": "Bad Guy — Billie Eilish"},
-  "food": {"text": "Caprese Salad"},
-  "mood": "Happy"
-}
-```
-
-**Response:**
-```json
-{
-  "commentary": "For a happy mood, pair the mind-bending Inception with Billie Eilish's Bad Guy for an edgy vibe, and enjoy a fresh Caprese Salad to complete your entertainment feast!"
-}
-```
-
 ## 🔧 Third-Party Integrations
 
-### Movies
-- **OMDb API**: Movie search and details
-- **TMDB API**: Genre-based discovery and now-playing movies
+- **Movies**: OMDb API, TMDB API
+- **Books**: Google Books API
+- **Games**: CheapShark API
+- **Food**: Spoonacular API
+- **Music**: Spotify API (OAuth 2.0), iTunes API (fallback)
+- **Events**: SeatGeek API, BookMyShow links, Google Search
+- **Analytics**: Sheet.best (Google Sheets logging)
+- **AI**: OpenAI API (optional commentary)
 
-### Books
-- **Google Books API**: Book recommendations by subject
+## 📊 Key Features Coverage
 
-### Games
-- **CheapShark API**: Game search and pricing
+### Core Requirements ✅
 
-### Food
-- **Spoonacular API**: Recipe recommendations (supports vegetarian filter)
+1. **Suggest Something**
+   - ✅ Multiple categories (Movies, Books, Games, Food, Music)
+   - ✅ Preference collection before suggestions
+   - ✅ Third-party API integration
+   - ✅ Card-based display format
 
-### Music
-- **Spotify API**: Music recommendations (OAuth 2.0)
-- **iTunes API**: Fallback music search
+2. **Book an Event**
+   - ✅ Multiple event types (Movies, Concerts, Talkshow, Theater, Sports)
+   - ✅ Location-based search (200+ Indian cities)
+   - ✅ Action items (booking links)
+   - ✅ Third-party integration (BookMyShow, SeatGeek)
 
-### Events
-- **SeatGeek API**: Event listings (optional)
-- **Nominatim (OpenStreetMap)**: City geocoding
-- **TMDB API**: Now-playing movies
+3. **Custom Feature (My Pick Combo)**
+   - ✅ Creative multi-modal recommendations
+   - ✅ Mood-based personalization
+   - ✅ Combines multiple entertainment types
 
-### Analytics
-- **Sheet.best**: Google Sheets logging
+### Brownie Points ✅
 
-### AI
-- **OpenAI API**: AI commentary (optional)
+1. **OAuth 2.0 Authentication**
+   - ✅ Spotify OAuth integration
+   - ✅ Secure authentication flow
+   - ✅ Direct track links after connection
+
+2. **AI Functionalities**
+   - ✅ Backend supports OpenAI integration
+   - ✅ Optional AI commentary on recommendations
+
+3. **Data Collection**
+   - ✅ Google Sheets logging
+   - ✅ Comprehensive interaction tracking
+   - ✅ Analytics-ready data structure
+
+## 🏗️ Integration Architecture
+
+The bot uses a **minimal integration pattern** that separates concerns:
+
+```
+User → Zoho SalesIQ → Deluge Handlers → Backend API → Third-Party APIs
+                ↓
+         Session Storage
+                ↓
+         Card URL Retrieval
+```
+
+### Minimal Integration Approach
+
+1. **Deluge Scripts (Frontend Logic):**
+   - Handle conversation flow
+   - Collect user preferences
+   - Format responses
+   - Manage session storage
+
+2. **Backend API (Business Logic):**
+   - Fetches data from third-party APIs
+   - Processes and filters results
+   - Formats card data
+   - Handles logging
+
+3. **Zoho SalesIQ (Platform):**
+   - Provides chat interface
+   - Manages visitor sessions
+   - Handles message routing
+   - Stores session data
 
 ## 🚢 Deployment
 
-### Deploy to Render (Single Service)
-
-ZoRek is designed to deploy as a **single Render service** that serves both Flask backend and React frontend.
+### Deploy to Render
 
 1. **Create a new Web Service** on Render
 2. **Connect your GitHub repository**
-3. **Set environment variables** in Render dashboard (see below)
+3. **Set environment variables** in Render dashboard
 4. **Set build command**:
    ```bash
-   pip install -r requirements.txt && npm install && npm run build
+   pip install -r requirements.txt
    ```
 5. **Set start command**:
    ```bash
    gunicorn app:app
    ```
-6. **Deploy**
 
-The Flask app will serve the React build from `static/build/` directory, and all API endpoints will be available on the same domain.
-
-### Environment Variables on Render
-
-Add all environment variables from `.env` in the Render dashboard under "Environment":
-
-```
-OMDB_KEY=your_omdb_key_here
-TMDB_KEY=your_tmdb_key_here
-SPOONACULAR_KEY=your_spoonacular_key_here
-SHEET_BEST_URL=https://api.sheetbest.com/sheets/your_sheet_id_here
-SPOTIFY_CLIENT_ID=your_spotify_client_id_here
-SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
-SPOTIFY_REDIRECT_URI=https://zorek.onrender.com/oauth/spotify/callback
-SEATGEEK_CLIENT_ID=your_seatgeek_client_id_here
-OPENAI_API_KEY=your_openai_api_key_here
-```
-
-### Project Structure
+## 📄 Project Structure
 
 ```
 ZoRek/
-├── app.py                    # Flask backend
-├── requirements.txt          # Python dependencies
-├── package.json              # Node.js dependencies
-├── vite.config.js           # Vite configuration
-├── tailwind.config.js       # Tailwind CSS configuration
-├── templates/
-│   └── index.html           # Fallback HTML template
-├── static/
-│   └── build/               # React build output (generated)
-├── src/
-│   ├── App.jsx              # Main React chat UI
-│   ├── config.js            # API configuration
-│   ├── index.js             # React entry point
-│   └── styles.css           # Tailwind CSS styles
-├── .env (ignored)           # Environment variables
+├── app.py                        # Flask backend
+├── bot/
+│   ├── routes.py                # Bot API endpoints
+│   └── __init__.py
+├── zohoscripts/
+│   ├── TriggerHandler.deluge    # Initial greeting
+│   ├── MessageHandler.deluge    # Message routing
+│   ├── ContextHandler.deluge    # Core logic
+│   └── FailureHandler.deluge    # Error handling
+├── ZoRek_bot.zip                # Ready-to-use bot scripts
+├── ZoRek_Bot_Documentation.md   # Detailed documentation
+├── requirements.txt              # Python dependencies
 └── README.md
-```
-
-## 📊 Testing
-
-### Health Check
-```bash
-curl http://localhost:5000/health_check
-```
-
-### Test Recommendations
-```bash
-curl -X POST http://localhost:5000/recommendations \
-  -H "Content-Type: application/json" \
-  -d '{"mood":"Happy","movieGenre":"Action","songType":"Pop","diet":"Veg"}'
-```
-
-### Test Suggest
-```bash
-curl -X POST http://localhost:5000/suggest \
-  -H "Content-Type: application/json" \
-  -d '{"category":"Movies","prefs":{"genre":"Drama","minImdb":7.0}}'
-```
-
-### Test Events
-```bash
-curl -X POST http://localhost:5000/events \
-  -H "Content-Type: application/json" \
-  -d '{"category":"Concerts","city":"Mumbai"}'
 ```
 
 ## 📝 Logging
 
 All user interactions are automatically logged to Google Sheets via Sheet.best. The log includes:
-- Name
-- Email
-- Choice (Movies/Books/Games/Food/Music)
-- Genre
-- Mood
-- Suggestion
-- Timestamp
+- Category, Preferences, City
+- Results Count, Suggestions
+- Timestamp, Endpoint
 
 ## 🔒 Security
 
-- All API keys are stored in environment variables
-- CORS is configured for Zoho SalesIQ domains
-- OAuth 2.0 is used for Spotify authentication
-- All endpoints return proper error responses
+- All API keys stored in environment variables
+- CORS configured for Zoho SalesIQ domains
+- OAuth 2.0 for Spotify authentication
+- Proper error handling and responses
 
 ## 📚 Documentation
 
-For detailed Zoho SalesIQ integration guide, see [ZoRek_SalesIQ_Integration_Guide.md](./ZoRek_SalesIQ_Integration_Guide.md).
+- **[ZoRek_Bot_Documentation.md](./ZoRek_Bot_Documentation.md)** - Complete handler scripts documentation
+- Handler scripts are in `zohoscripts/` folder
+- Ready-to-use zip: `ZoRek_bot.zip`
 
 ## 🐛 Troubleshooting
 
 ### API Keys Not Working
 - Ensure all environment variables are set correctly
 - Check that API keys are valid and have proper permissions
-- Verify `.env` file is in the project root
-
-### CORS Errors
-- Ensure CORS is configured correctly in `app.py`
-- Check that your domain is allowed in CORS settings
 
 ### Spotify OAuth Not Working
 - Verify `SPOTIFY_REDIRECT_URI` matches your Spotify app settings
-- Check that redirect URI is added in Spotify Developer Dashboard
+- Check redirect URI is added in Spotify Developer Dashboard
 - Ensure `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` are correct
+
+### Handler Scripts Errors
+- Verify backend URL is accessible: `https://zorek.onrender.com`
+- Check portal name is correctly extracted in handlers
+- Ensure session storage is working properly
 
 ## 📄 License
 
 This project is non-commercial and built for educational purposes.
-
-## 👥 Contributors
-
-- Built for Zoho SalesIQ Entertainment Track
 
 ## 🔗 Links
 
@@ -496,7 +349,6 @@ This project is non-commercial and built for educational purposes.
 - **GitHub**: https://github.com/gitXsingh/ZoRek
 - **Zoho SalesIQ**: https://www.zoho.com/salesiq/
 
-## 📞 Support
+## 👥 Contributors
 
-For issues and questions, please open an issue on GitHub.
-
+Built for Zoho SalesIQ Entertainment Track

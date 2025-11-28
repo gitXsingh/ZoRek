@@ -1,79 +1,45 @@
-info "📋 ContextHandler invoked with context_id: " + context_id;
-info "📋 ContextHandler answers: " + answers;
-
 response = Map();
 hasReturned = false;
-
-getPortalName = function(req)
+portalName = "";
+// get portal name from request for session storage
+if(request != null)
 {
-	portalVal = "";
-	if(req != null)
+	if(request.containsKey("portal_name"))
 	{
-		if(req.containsKey("portal_name"))
-		{
-			portalVal = req.get("portal_name").toString();
-		}
-		else if(req.containsKey("portalName"))
-		{
-			portalVal = req.get("portalName").toString();
-		}
+		portalName = request.get("portal_name").toString();
 	}
-	return portalVal;
-};
-
-storeCardUrls = function(cardMap, labelPrefix, portalVal)
-{
-	if(cardMap != null && cardMap.size() > 0)
+	else if(request.containsKey("portalName"))
 	{
-		try
-		{
-			if(portalVal != "" && portalVal != null)
-			{
-				zoho.salesiq.visitorsession.set(portalVal,{"zorek_cards":cardMap});
-				info labelPrefix + " stored " + cardMap.size() + " card URLs in session for portal " + portalVal;
-			}
-			else
-			{
-				info labelPrefix + " skipped session storage (no portal name)";
-			}
-		}
-		catch(sessionErr)
-		{
-			info labelPrefix + " session store error " + sessionErr;
-		}
+		portalName = request.get("portalName").toString();
 	}
-};
+}
 
-portalName = getPortalName(request);
-
-// ---------------- Suggest Something ----------------
+// handle suggest something context
 if(context_id.equals("suggest_context"))
 {
-	try
-	{
-		info "🟦 suggest_context answers " + answers;
-		category = "";
-		if(answers != null && answers.containsKey("category"))
+		try
 		{
-			categoryAnswer = answers.get("category");
-			if(categoryAnswer != null)
+			// extract category from user answer
+			category = "";
+			if(answers != null && answers.containsKey("category"))
 			{
-				try
+				categoryAnswer = answers.get("category");
+				if(categoryAnswer != null)
 				{
-					category = categoryAnswer.get("text").toString();
-				}
-				catch(catErr)
-				{
-					category = categoryAnswer.toString();
+					try
+					{
+						category = categoryAnswer.get("text").toString();
+					}
+					catch(catErr)
+					{
+						category = categoryAnswer.toString();
+					}
 				}
 			}
-		}
-
-		info "🟦 suggest_context category " + category;
-
-		if(category != null)
-		{
-			categoryLower = category.toLowerCase();
+			// normalize category name to standard format
+			if(category != null)
+			{
+				categoryLower = category.toLowerCase();
 			if(categoryLower.contains("movie") || categoryLower.contains("film") || categoryLower.contains("cinema"))
 			{
 				category = "movies";
@@ -99,10 +65,8 @@ if(context_id.equals("suggest_context"))
 				randomChoices = {"movies","books","games","food","music"};
 				randomIndex = zoho.currenttime.toLong() % randomChoices.size();
 				category = randomChoices.get(randomIndex);
-				info "🟦 suggest_context surprise mapped to " + category;
 			}
 		}
-
 		if(category == "" || category == null)
 		{
 			response = Map();
@@ -112,8 +76,7 @@ if(context_id.equals("suggest_context"))
 			hasReturned = true;
 			return response;
 		}
-
-		// Check if preferences have been collected - if not, ask for them first
+		// initialize preference variables
 		genre = "";
 		minImdb = "";
 		year = "";
@@ -121,7 +84,7 @@ if(context_id.equals("suggest_context"))
 		keyword = "";
 		diet = "";
 		songType = "";
-		
+		// extract user preferences from answers
 		if(answers != null)
 		{
 			if(answers.containsKey("genre"))
@@ -251,30 +214,25 @@ if(context_id.equals("suggest_context"))
 				}
 			}
 		}
-		
-		// If category is selected but preferences not collected, ask for them
+		// ask for movie preferences if not collected yet
 		if(category.equalsIgnoreCase("movies") && genre == "")
 		{
 			response = Map();
 			response.put("action","context");
 			response.put("context_id","suggest_context");
 			questions = Collection();
-			
 			q1 = Map();
 			q1.put("name","genre");
 			q1.put("replies",{"What genre are you in the mood for? (e.g., Action, Drama, Comedy)"});
 			q1.put("suggestions",{"Action","Drama","Comedy","Thriller","Sci-Fi","Romance","Horror","Adventure","Surprise Me"});
-			
 			q2 = Map();
 			q2.put("name","minImdb");
 			q2.put("replies",{"Minimum IMDB rating? (e.g., 7.0, 8.0, or skip)"});
 			q2.put("suggestions",{"7.0+","8.0+","8.5+","Any Rating","Skip"});
-			
 			q3 = Map();
 			q3.put("name","year");
 			q3.put("replies",{"Preferred release year? (e.g., 2020, 2015, or skip)"});
 			q3.put("suggestions",{"2020+","2015+","2010+","Any Year","Skip"});
-			
 			questions.insert(q1);
 			questions.insert(q2);
 			questions.insert(q3);
@@ -288,12 +246,10 @@ if(context_id.equals("suggest_context"))
 			response.put("action","context");
 			response.put("context_id","suggest_context");
 			questions = Collection();
-			
 			q1 = Map();
 			q1.put("name","subject");
 			q1.put("replies",{"What kind of books interest you? (e.g., Fiction, Mystery, Biography)"});
 			q1.put("suggestions",{"Fiction","Mystery","Biography","Self-Help","Sci-Fi","Romance","Thriller","Bestsellers","Surprise Me"});
-			
 			questions.insert(q1);
 			response.put("questions",questions);
 			hasReturned = true;
@@ -305,12 +261,10 @@ if(context_id.equals("suggest_context"))
 			response.put("action","context");
 			response.put("context_id","suggest_context");
 			questions = Collection();
-			
 			q1 = Map();
 			q1.put("name","keyword");
 			q1.put("replies",{"What type of games do you enjoy? (e.g., Action, RPG, Strategy)"});
 			q1.put("suggestions",{"Action","RPG","Strategy","Racing","Adventure","Horror","Sports","Popular Games","Surprise Me"});
-			
 			questions.insert(q1);
 			response.put("questions",questions);
 			hasReturned = true;
@@ -322,12 +276,10 @@ if(context_id.equals("suggest_context"))
 			response.put("action","context");
 			response.put("context_id","suggest_context");
 			questions = Collection();
-			
 			q1 = Map();
 			q1.put("name","diet");
 			q1.put("replies",{"Any dietary preferences?"});
 			q1.put("suggestions",{"Veg","Non-Veg","Vegan","Keto","Any","Surprise Me"});
-			
 			questions.insert(q1);
 			response.put("questions",questions);
 			hasReturned = true;
@@ -339,25 +291,20 @@ if(context_id.equals("suggest_context"))
 			response.put("action","context");
 			response.put("context_id","suggest_context");
 			questions = Collection();
-			
 			q1 = Map();
 			q1.put("name","songType");
 			q1.put("replies",{"What music style do you prefer? (e.g., Pop, Rock, Hip-Hop)"});
 			q1.put("suggestions",{"Pop","Rock","Hip-Hop","Lo-fi","Classical","EDM","Jazz","Country","Surprise Me"});
-			
 			questions.insert(q1);
 			response.put("questions",questions);
 			hasReturned = true;
 			return response;
 		}
-
-		// Now build payload with collected preferences
+		// build api payload with category and preferences
 		responseText = "Here are some " + category + " suggestions based on your preferences.";
-
 		payload = Map();
 		payload.put("category",category);
 		prefs = Map();
-		
 		if(category.equalsIgnoreCase("movies"))
 		{
 			if(genre != "" && !genre.equalsIgnoreCase("skip") && !genre.equalsIgnoreCase("surprise me"))
@@ -405,30 +352,26 @@ if(context_id.equals("suggest_context"))
 				prefs.put("songType",songType);
 			}
 		}
-		
 		payload.put("prefs",prefs);
+		// call backend api to get suggestions
 		apiResult = Map();
 		apiSuccess = true;
-
 		try
 		{
 			apiResult = invokeurl
 			[
-				url : "https://zorek.onrender.com/suggest_cards"
-				type : POST
-				parameters : payload
+				url :"https://zorek.onrender.com/suggest_cards"
+				type :POST
+				parameters:payload
 			];
-			info "🟦 suggest_context API result " + apiResult;
 		}
 		catch(apiErrSuggest)
 		{
 			apiSuccess = false;
-			info "🟥 suggest_context invokeurl error " + apiErrSuggest;
 		}
-
+		// create fallback cards if api fails
 		if(apiSuccess == false || apiResult == null || apiResult.isEmpty())
 		{
-			info "🟦 suggest_context using fallback cards due to API timeout/failure";
 			cardCollection = Collection();
 			if(category.equalsIgnoreCase("movies"))
 			{
@@ -507,24 +450,24 @@ if(context_id.equals("suggest_context"))
 						}
 						if(card.containsKey("image") && card.get("image") != null)
 						{
-							imageVal = card.get("image").toString();
-							if(imageVal != "" && imageVal != null && imageVal != "null")
+							img = card.get("image").toString();
+							if(img != "" && img != "null")
 							{
-								cardImage = imageVal;
+								cardImage = img;
 							}
 						}
 						if(card.containsKey("actions"))
 						{
-							actionsList = card.get("actions");
-							if(actionsList != null && actionsList.size() > 0)
+							acts = card.get("actions");
+							if(acts != null && acts.size() > 0)
 							{
-								firstAction = actionsList.get(0);
-								if(firstAction != null && firstAction.containsKey("link"))
+								act = acts.get(0);
+								if(act != null && act.containsKey("link"))
 								{
-									urlVal = firstAction.get("link").toString();
-									if(urlVal != "" && urlVal != null && urlVal != "null")
+									url = act.get("link").toString();
+									if(url != "" && url != "null")
 									{
-										cardUrl = urlVal;
+										cardUrl = url;
 									}
 								}
 							}
@@ -536,7 +479,7 @@ if(context_id.equals("suggest_context"))
 						}
 						if(cardUrl != "")
 						{
-							replyText = replyText + "\n🔗 " + cardUrl;
+							replyText = replyText + "\n" + cardUrl;
 							cardUrlsMap.put(cardIndex.toString(),cardUrl);
 						}
 						replyMap = Map();
@@ -552,11 +495,21 @@ if(context_id.equals("suggest_context"))
 				}
 				catch(cardErr)
 				{
-					info "🟥 suggest_context fallback card error " + cardErr;
 				}
 			}
-			// Store card URLs in visitor session
-			storeCardUrls(cardUrlsMap,"🟦 suggest_context fallback",portalName);
+			if(cardUrlsMap != null && cardUrlsMap.size() > 0)
+			{
+				try
+				{
+					if(portalName != "" && portalName != null)
+					{
+						zoho.salesiq.visitorsession.set(portalName,{"zorek_cards":cardUrlsMap});
+					}
+				}
+				catch(sessionErr)
+				{
+				}
+			}
 			selectReply = Map();
 			selectReply.put("text","Select from given options");
 			replies.insert(selectReply);
@@ -569,18 +522,15 @@ if(context_id.equals("suggest_context"))
 			hasReturned = true;
 			return response;
 		}
-
 		cardCollection = Collection();
 		cardsList = null;
 		if(apiResult.containsKey("type") && apiResult.get("type").toString().equalsIgnoreCase("multiple-product") && apiResult.containsKey("elements"))
 		{
 			cardsList = apiResult.get("elements");
-			info "🟦 suggest_context: Found Multiple Product format with " + cardsList.size() + " elements";
 		}
 		else if(apiResult.containsKey("cards"))
 		{
 			cardsList = apiResult.get("cards");
-			info "🟦 suggest_context: Found legacy cards format with " + cardsList.size() + " cards";
 		}
 		if(apiResult.containsKey("text"))
 		{
@@ -597,9 +547,6 @@ if(context_id.equals("suggest_context"))
 		{
 			cardCollection = cardsList;
 		}
-
-		info "🟦 suggest_context cards count " + cardCollection.size();
-
 		if(cardCollection.size() == 0)
 		{
 			fallbackCard = Map();
@@ -616,7 +563,6 @@ if(context_id.equals("suggest_context"))
 			fallbackCard.put("actions",actionList);
 			cardCollection.insert(fallbackCard);
 		}
-
 		if(cardCollection.size() > 0)
 		{
 			response = Map();
@@ -648,24 +594,24 @@ if(context_id.equals("suggest_context"))
 						}
 						if(card.containsKey("image") && card.get("image") != null)
 						{
-							imageVal = card.get("image").toString();
-							if(imageVal != "" && imageVal != null && imageVal != "null")
+							img = card.get("image").toString();
+							if(img != "" && img != "null")
 							{
-								cardImage = imageVal;
+								cardImage = img;
 							}
 						}
 						if(card.containsKey("actions"))
 						{
-							actionsList = card.get("actions");
-							if(actionsList != null && actionsList.size() > 0)
+							acts = card.get("actions");
+							if(acts != null && acts.size() > 0)
 							{
-								firstAction = actionsList.get(0);
-								if(firstAction != null && firstAction.containsKey("link"))
+								act = acts.get(0);
+								if(act != null && act.containsKey("link"))
 								{
-									urlVal = firstAction.get("link").toString();
-									if(urlVal != "" && urlVal != null && urlVal != "null")
+									url = act.get("link").toString();
+									if(url != "" && url != "null")
 									{
-										cardUrl = urlVal;
+										cardUrl = url;
 									}
 								}
 							}
@@ -677,7 +623,7 @@ if(context_id.equals("suggest_context"))
 						}
 						if(cardUrl != "")
 						{
-							replyText = replyText + "\n🔗 " + cardUrl;
+							replyText = replyText + "\n" + cardUrl;
 							cardUrlsMap.put(cardIndex.toString(),cardUrl);
 						}
 						replyMap = Map();
@@ -693,11 +639,21 @@ if(context_id.equals("suggest_context"))
 				}
 				catch(cardErr)
 				{
-					info "🟥 suggest_context card error " + cardErr;
 				}
 			}
-			// Store card URLs in visitor session for retrieval when user selects a number
-			storeCardUrls(cardUrlsMap,"🟦 suggest_context",portalName);
+			if(cardUrlsMap != null && cardUrlsMap.size() > 0)
+			{
+				try
+				{
+					if(portalName != "" && portalName != null)
+					{
+						zoho.salesiq.visitorsession.set(portalName,{"zorek_cards":cardUrlsMap});
+					}
+				}
+				catch(sessionErr)
+				{
+				}
+			}
 			selectReply = Map();
 			selectReply.put("text","Select from given options");
 			replies.insert(selectReply);
@@ -712,8 +668,6 @@ if(context_id.equals("suggest_context"))
 			suggestionOptions.insert("My Pick Combo");
 			suggestionOptions.insert("Connect with human");
 			response.put("suggestions",suggestionOptions);
-			info "🟦 suggest_context VALIDATING RESPONSE - action=" + response.get("action") + ", hasReplies=" + response.containsKey("replies") + ", repliesCount=" + replies.size() + ", hasSuggestions=" + response.containsKey("suggestions");
-			info "🟦 suggest_context FULL RESPONSE: " + response;
 			hasReturned = true;
 			return response;
 		}
@@ -723,14 +677,12 @@ if(context_id.equals("suggest_context"))
 			response.put("action","reply");
 			response.put("replies",{"No " + category + " suggestions found. Please try another category."});
 			response.put("suggestions",{"Suggest Something","Book an Event","My Pick Combo","Connect with human"});
-			info "🟦 suggest_context returning text reply (no cards)";
 			hasReturned = true;
 			return response;
 		}
 	}
 	catch(suggestErr)
 	{
-		info "🟥 suggest_context fatal error " + suggestErr;
 		response = Map();
 		response.put("action","reply");
 		response.put("replies",{"Sorry, something went wrong. Please try again."});
@@ -740,15 +692,14 @@ if(context_id.equals("suggest_context"))
 	}
 }
 
-// ---------------- Book an Event ----------------
+// handle book an event context
 if(context_id.equals("event_context"))
 {
 	try
 	{
-		info "🟩 event_context answers " + answers;
+		// extract event type and city from answers
 		eventType = "";
 		cityValue = "";
-
 		if(answers != null)
 		{
 			if(answers.containsKey("event_type"))
@@ -782,7 +733,6 @@ if(context_id.equals("event_context"))
 				}
 			}
 		}
-
 		if(eventType != null)
 		{
 			eventLower = eventType.toLowerCase();
@@ -811,10 +761,7 @@ if(context_id.equals("event_context"))
 				eventType = "find events";
 			}
 		}
-
-		info "🟩 event_context type/city " + eventType + " / " + cityValue;
-
-		// Ensure event type is collected before proceeding
+		// ask for event type if not provided
 		if(eventType == "" || eventType == null)
 		{
 			response = Map();
@@ -830,8 +777,7 @@ if(context_id.equals("event_context"))
 			hasReturned = true;
 			return response;
 		}
-
-		// Ensure city is collected before fetching events
+		// ask for city if not provided
 		if(cityValue == "" || cityValue == null)
 		{
 			response = Map();
@@ -841,191 +787,188 @@ if(context_id.equals("event_context"))
 			q1 = Map();
 			q1.put("name","city");
 			q1.put("replies",{"Which city should I search in? (e.g., Mumbai, Delhi)"});
-			q1.put("suggestions",{"Mumbai","Delhi","Bengaluru","Hyderabad","Chennai","Pune","Kolkata","Ahmedabad","Jaipur","Lucknow","Surat","Nagpur","Indore","Thane","Bhopal","Visakhapatnam","Patna","Vadodara","Ghaziabad","Ludhiana","Agra","Nashik","Faridabad","Meerut","Rajkot","Varanasi","Srinagar","Amritsar","Noida","Ranchi","Chandigarh","Raipur","Gwalior","Jodhpur","Coimbatore","Madurai","Vijayawada","Solapur","Tiruchirappalli","Bareilly","Moradabad","Mysore","Tiruppur","Gurgaon","Aligarh","Jalandhar","Bhubaneswar","Salem","Warangal","Guntur","Bhiwandi","Saharanpur","Gorakhpur","Bikaner","Amravati","Jamshedpur","Bhilai","Cuttack","Firozabad","Kochi","Nellore","Bhavnagar","Dehradun","Durgapur","Asansol","Rourkela","Nanded","Kolhapur","Ajmer","Gulbarga","Jamnagar","Ujjain","Loni","Siliguri","Jhansi","Ulhasnagar","Jammu","Sangli-Miraj","Mangalore","Erode","Belgaum","Ambattur","Tirunelveli","Malegaon","Gaya","Jalgaon","Udaipur","Maheshtala","Davangere","Kozhikode","Akola","Kurnool","Rajahmundry","Bokaro","South Dumdum","Bellary","Patiala","Gopalpur","Agartala","Bhagalpur","Muzaffarnagar","Bhatpara","Panihati","Latur","Dhule","Rohtak","Korba","Bilaspur","Muzaffarpur","Ahmednagar","Mathura","Kollam","Avadi","Kadapa","Kamptee","Sambalpur","Shahjahanpur","Satara","Rampur","Shivamogga","Chandrapur","Junagadh","Thrissur","Alwar","Bardhaman","Kulti","Kakinada","Nizamabad","Parbhani","Tumkur","Khammam","Ozhukarai","Bihar Sharif","Panipat","Darbhanga","Bally","Aizawl","Dewas","Ichalkaranji","Tirupati","Karnal","Bathinda","Jalna","Barasat","Kirari Suleman Nagar","Purnia","Satna","Mau","Sonipat","Farrukhabad","Sagar","Durg","Imphal","Ratlam","Hapur","Anantapur","Arrah","Karimnagar","Etawah","Bharatpur","Begusarai","New Delhi","Chhapra","Buxar","Jehanabad","Phusro","Dindigul","Gandhinagar","Baranagar","Tiruvottiyur","Puducherry","Sikar","Thoothukudi","Rewa","Mirzapur","Raichur","Pali","Khora","Vejalpur","Kottayam","Gangtok","Thiruvananthapuram","Port Blair","Kavaratti","Daman","Diu","Silvassa","Panaji","Shillong","Itanagar","Kohima","Dispur"});
+			q1.put("suggestions",{"Mumbai","Delhi","Bengaluru","Hyderabad","Chennai","Pune","Kolkata","Ahmedabad","Jaipur","Lucknow","Surat","Nagpur","Indore","Bhopal","Visakhapatnam","Patna","Vadodara","Chandigarh","Coimbatore","Madurai","Kochi","Bhubaneswar","Ranchi","Dehradun","Udaipur"});
 			questions.insert(q1);
 			response.put("questions",questions);
 			hasReturned = true;
 			return response;
 		}
-
-	responseText = "Here are events for " + eventType + " in " + cityValue + ".";
-
+		responseText = "Here are events for " + eventType + " in " + cityValue + ".";
 		payload = Map();
 		payload.put("category",eventType);
 		payload.put("city",cityValue);
 		apiResult = Map();
 		apiSuccess = true;
-
 		try
 		{
 			apiResult = invokeurl
 			[
-				url : "https://zorek.onrender.com/events_cards"
-				type : POST
-				parameters : payload
+				url :"https://zorek.onrender.com/events_cards"
+				type :POST
+				parameters:payload
 			];
-			info "🟩 event_context API result " + apiResult;
 		}
 		catch(apiErrEvent)
 		{
 			apiSuccess = false;
-			info "🟥 event_context invokeurl error " + apiErrEvent;
 		}
-
 		if(apiSuccess == false || apiResult == null || apiResult.isEmpty())
 		{
-			info "🟩 event_context using fallback cards due to API timeout/failure";
 			cardCollection = Collection();
 			fallbackCard1 = Map();
-		fallbackCard1.put("id","fallback_event_search_" + zoho.currenttime.toLong());
-		fallbackCard1.put("title","Search " + eventType + " near " + cityValue);
-		fallbackCard1.put("subtitle","Events in " + cityValue);
-		searchUrl = "https://www.google.com/search?q=" + eventType + "+near+" + cityValue;
-		actionList1 = Collection();
-		actionMap1 = Map();
-		actionMap1.put("label","Search Online");
-		actionMap1.put("type","url");
-		actionMap1.put("name","fallback_event_search_action");
-		actionMap1.put("link",searchUrl);
-		actionList1.insert(actionMap1);
-		fallbackCard1.put("actions",actionList1);
+			fallbackCard1.put("id","fallback_event_search_" + zoho.currenttime.toLong());
+			fallbackCard1.put("title","Search " + eventType + " near " + cityValue);
+			fallbackCard1.put("subtitle","Events in " + cityValue);
+			searchUrl = "https://www.google.com/search?q=" + eventType + "+near+" + cityValue;
+			actionList1 = Collection();
+			actionMap1 = Map();
+			actionMap1.put("label","Search Online");
+			actionMap1.put("type","url");
+			actionMap1.put("name","fallback_event_search_action");
+			actionMap1.put("link",searchUrl);
+			actionList1.insert(actionMap1);
+			fallbackCard1.put("actions",actionList1);
 			cardCollection.insert(fallbackCard1);
-			
 			fallbackCard2 = Map();
-		fallbackCard2.put("id","fallback_event_bms_" + zoho.currenttime.toLong());
-		fallbackCard2.put("title","BookMyShow " + eventType + " in " + cityValue);
-		fallbackCard2.put("subtitle","Check available events");
-		bmsUrl = "https://in.bookmyshow.com/explore/events-" + cityValue.toLowerCase();
-		actionList2 = Collection();
-		actionMap2 = Map();
-		actionMap2.put("label","Book Tickets");
-		actionMap2.put("type","url");
-		actionMap2.put("name","fallback_event_bms_action");
-		actionMap2.put("link",bmsUrl);
-		actionList2.insert(actionMap2);
-		fallbackCard2.put("actions",actionList2);
+			fallbackCard2.put("id","fallback_event_bms_" + zoho.currenttime.toLong());
+			fallbackCard2.put("title","BookMyShow " + eventType + " in " + cityValue);
+			fallbackCard2.put("subtitle","Check available events");
+			bmsUrl = "https://in.bookmyshow.com/explore/events-" + cityValue.toLowerCase();
+			actionList2 = Collection();
+			actionMap2 = Map();
+			actionMap2.put("label","Book Tickets");
+			actionMap2.put("type","url");
+			actionMap2.put("name","fallback_event_bms_action");
+			actionMap2.put("link",bmsUrl);
+			actionList2.insert(actionMap2);
+			fallbackCard2.put("actions",actionList2);
 			cardCollection.insert(fallbackCard2);
-			
 			response = Map();
 			response.put("action","reply");
-		replies = Collection();
-		introReply = Map();
-		introReply.put("text","Here are some quick event links for " + cityValue + ".");
-		replies.insert(introReply);
-		optionNumbers = Collection();
-		cardIndex = 1;
-		cardUrlsMap = Map();
-		for each card in cardCollection
-		{
-			try
+			replies = Collection();
+			introReply = Map();
+			introReply.put("text","Here are some quick event links for " + cityValue + ".");
+			replies.insert(introReply);
+			optionNumbers = Collection();
+			cardIndex = 1;
+			cardUrlsMap = Map();
+			for each card in cardCollection
 			{
-				if(card != null)
+				try
 				{
-					cardTitle = "";
-					cardSubtitle = "";
-					cardImage = "";
-					cardUrl = "";
-					if(card.containsKey("title"))
+					if(card != null)
 					{
-						cardTitle = card.get("title").toString();
-					}
-					if(card.containsKey("subtitle"))
-					{
-						cardSubtitle = card.get("subtitle").toString();
-					}
-					if(card.containsKey("image") && card.get("image") != null)
-					{
-						imageVal = card.get("image").toString();
-						if(imageVal != "" && imageVal != null && imageVal != "null")
+						cardTitle = "";
+						cardSubtitle = "";
+						cardImage = "";
+						cardUrl = "";
+						if(card.containsKey("title"))
 						{
-							cardImage = imageVal;
+							cardTitle = card.get("title").toString();
 						}
-					}
-					if(card.containsKey("actions"))
-					{
-						actionsList = card.get("actions");
-						if(actionsList != null && actionsList.size() > 0)
+						if(card.containsKey("subtitle"))
 						{
-							firstAction = actionsList.get(0);
-							if(firstAction != null && firstAction.containsKey("link"))
+							cardSubtitle = card.get("subtitle").toString();
+						}
+						if(card.containsKey("image") && card.get("image") != null)
+						{
+							img = card.get("image").toString();
+							if(img != "" && img != "null")
 							{
-								urlVal = firstAction.get("link").toString();
-								if(urlVal != "" && urlVal != null && urlVal != "null")
+								cardImage = img;
+							}
+						}
+						if(card.containsKey("actions"))
+						{
+							acts = card.get("actions");
+							if(acts != null && acts.size() > 0)
+							{
+								act = acts.get(0);
+								if(act != null && act.containsKey("link"))
 								{
-									cardUrl = urlVal;
+									url = act.get("link").toString();
+									if(url != "" && url != "null")
+									{
+										cardUrl = url;
+									}
 								}
 							}
 						}
+						replyText = cardIndex.toString() + ". " + cardTitle;
+						if(cardSubtitle != "")
+						{
+							replyText = replyText + " - " + cardSubtitle;
+						}
+						if(cardUrl != "")
+						{
+							replyText = replyText + "\n" + cardUrl;
+							cardUrlsMap.put(cardIndex.toString(),cardUrl);
+						}
+						replyMap = Map();
+						replyMap.put("text",replyText);
+						if(cardImage != "")
+						{
+							replyMap.put("image",cardImage);
+						}
+						replies.insert(replyMap);
+						optionNumbers.insert(cardIndex.toString());
+						cardIndex = cardIndex + 1;
 					}
-					replyText = cardIndex.toString() + ". " + cardTitle;
-					if(cardSubtitle != "")
-					{
-						replyText = replyText + " - " + cardSubtitle;
-					}
-					if(cardUrl != "")
-					{
-						replyText = replyText + " → " + cardUrl;
-						cardUrlsMap.put(cardIndex.toString(),cardUrl);
-					}
-					replyMap = Map();
-					replyMap.put("text",replyText);
-					if(cardImage != "")
-					{
-						replyMap.put("image",cardImage);
-					}
-					replies.insert(replyMap);
-					optionNumbers.insert(cardIndex.toString());
-					cardIndex = cardIndex + 1;
+				}
+				catch(cardErr)
+				{
 				}
 			}
-			catch(cardErr)
+			if(cardUrlsMap != null && cardUrlsMap.size() > 0)
 			{
-				info "🟥 event_context fallback card error " + cardErr;
+				try
+				{
+					if(portalName != "" && portalName != null)
+					{
+						zoho.salesiq.visitorsession.set(portalName,{"zorek_cards":cardUrlsMap});
+					}
+				}
+				catch(sessionErr)
+				{
+				}
 			}
-		}
-		// Store card URLs in visitor session
-		storeCardUrls(cardUrlsMap,"🟩 event_context fallback",portalName);
-		selectReply = Map();
-		selectReply.put("text","Select from given options");
-		replies.insert(selectReply);
-		response.put("replies",replies);
-		selectInput = Map();
-		selectInput.put("type","select");
-		selectInput.put("options",optionNumbers);
-		response.put("input",selectInput);
+			selectReply = Map();
+			selectReply.put("text","Select from given options");
+			replies.insert(selectReply);
+			response.put("replies",replies);
+			selectInput = Map();
+			selectInput.put("type","select");
+			selectInput.put("options",optionNumbers);
+			response.put("input",selectInput);
 			response.put("suggestions",{"Book an Event","Suggest Something","My Pick Combo","Connect with human"});
 			hasReturned = true;
 			return response;
 		}
-
-	cardCollection = Collection();
-	cardsList = null;
-	if(apiResult.containsKey("type") && apiResult.get("type").toString().equalsIgnoreCase("multiple-product") && apiResult.containsKey("elements"))
-	{
-		cardsList = apiResult.get("elements");
-	}
-	else if(apiResult.containsKey("cards"))
-	{
-		cardsList = apiResult.get("cards");
-	}
-	if(apiResult.containsKey("text"))
-	{
-		try
+		cardCollection = Collection();
+		cardsList = null;
+		if(apiResult.containsKey("type") && apiResult.get("type").toString().equalsIgnoreCase("multiple-product") && apiResult.containsKey("elements"))
 		{
-			responseText = apiResult.get("text").toString();
+			cardsList = apiResult.get("elements");
 		}
-		catch(eventTextErr)
+		else if(apiResult.containsKey("cards"))
 		{
-			responseText = responseText;
+			cardsList = apiResult.get("cards");
 		}
-	}
-	if(cardsList != null && cardsList.size() > 0)
-	{
-		cardCollection = cardsList;
-	}
-
-		info "🟩 event_context cards count " + cardCollection.size();
-
+		if(apiResult.containsKey("text"))
+		{
+			try
+			{
+				responseText = apiResult.get("text").toString();
+			}
+			catch(eventTextErr)
+			{
+				responseText = responseText;
+			}
+		}
+		if(cardsList != null && cardsList.size() > 0)
+		{
+			cardCollection = cardsList;
+		}
 		if(cardCollection.size() == 0)
 		{
 			fallbackCard = Map();
@@ -1042,7 +985,6 @@ if(context_id.equals("event_context"))
 			fallbackCard.put("actions",actionList);
 			cardCollection.insert(fallbackCard);
 		}
-
 		if(cardCollection.size() > 0)
 		{
 			response = Map();
@@ -1074,24 +1016,24 @@ if(context_id.equals("event_context"))
 						}
 						if(card.containsKey("image") && card.get("image") != null)
 						{
-							imageVal = card.get("image").toString();
-							if(imageVal != "" && imageVal != null && imageVal != "null")
+							img = card.get("image").toString();
+							if(img != "" && img != "null")
 							{
-								cardImage = imageVal;
+								cardImage = img;
 							}
 						}
 						if(card.containsKey("actions"))
 						{
-							actionsList = card.get("actions");
-							if(actionsList != null && actionsList.size() > 0)
+							acts = card.get("actions");
+							if(acts != null && acts.size() > 0)
 							{
-								firstAction = actionsList.get(0);
-								if(firstAction != null && firstAction.containsKey("link"))
+								act = acts.get(0);
+								if(act != null && act.containsKey("link"))
 								{
-									urlVal = firstAction.get("link").toString();
-									if(urlVal != "" && urlVal != null && urlVal != "null")
+									url = act.get("link").toString();
+									if(url != "" && url != "null")
 									{
-										cardUrl = urlVal;
+										cardUrl = url;
 									}
 								}
 							}
@@ -1103,7 +1045,7 @@ if(context_id.equals("event_context"))
 						}
 						if(cardUrl != "")
 						{
-							replyText = replyText + "\n🔗 " + cardUrl;
+							replyText = replyText + "\n" + cardUrl;
 							cardUrlsMap.put(cardIndex.toString(),cardUrl);
 						}
 						replyMap = Map();
@@ -1119,11 +1061,21 @@ if(context_id.equals("event_context"))
 				}
 				catch(cardErr)
 				{
-					info "🟥 event_context card error " + cardErr;
 				}
 			}
-			// Store card URLs in visitor session
-			storeCardUrls(cardUrlsMap,"🟩 event_context",portalName);
+			if(cardUrlsMap != null && cardUrlsMap.size() > 0)
+			{
+				try
+				{
+					if(portalName != "" && portalName != null)
+					{
+						zoho.salesiq.visitorsession.set(portalName,{"zorek_cards":cardUrlsMap});
+					}
+				}
+				catch(sessionErr)
+				{
+				}
+			}
 			selectReply = Map();
 			selectReply.put("text","Select from given options");
 			replies.insert(selectReply);
@@ -1138,8 +1090,6 @@ if(context_id.equals("event_context"))
 			suggestionOptions.insert("My Pick Combo");
 			suggestionOptions.insert("Connect with human");
 			response.put("suggestions",suggestionOptions);
-			info "🟩 event_context VALIDATING RESPONSE - action=" + response.get("action") + ", hasReplies=" + response.containsKey("replies") + ", repliesCount=" + replies.size() + ", hasSuggestions=" + response.containsKey("suggestions");
-			info "🟩 event_context FULL RESPONSE: " + response;
 			hasReturned = true;
 			return response;
 		}
@@ -1149,14 +1099,12 @@ if(context_id.equals("event_context"))
 			response.put("action","reply");
 			response.put("replies",{"No events found for " + eventType + " in " + cityValue + "."});
 			response.put("suggestions",{"Book an Event","Suggest Something","My Pick Combo","Connect with human"});
-			info "🟩 event_context returning text reply (no cards)";
 			hasReturned = true;
 			return response;
 		}
 	}
 	catch(eventContextErr)
 	{
-		info "🟥 event_context fatal error " + eventContextErr;
 		response = Map();
 		response.put("action","reply");
 		response.put("replies",{"Something went wrong while fetching events. Please try again."});
@@ -1166,81 +1114,79 @@ if(context_id.equals("event_context"))
 	}
 }
 
-// ---------------- Combo Context ----------------
+// handle my pick combo context
 if(context_id.equals("combo_context"))
 {
 	try
 	{
-		info "🟪 combo_context answers " + answers;
+		// extract combo preferences from answers
 		moodValue = "";
 		movieGenreValue = "";
 		songTypeValue = "";
 		dietValue = "";
-
-	if(answers != null)
-	{
-		if(answers.containsKey("mood"))
+		if(answers != null)
 		{
-			moodAnswer = answers.get("mood");
-			if(moodAnswer != null)
+			if(answers.containsKey("mood"))
 			{
-				try
+				moodAnswer = answers.get("mood");
+				if(moodAnswer != null)
 				{
-					moodValue = moodAnswer.get("text").toString();
+					try
+					{
+						moodValue = moodAnswer.get("text").toString();
+					}
+					catch(moodErr)
+					{
+						moodValue = moodAnswer.toString();
+					}
 				}
-				catch(moodErr)
+			}
+			if(answers.containsKey("movieGenre"))
+			{
+				movieAnswer = answers.get("movieGenre");
+				if(movieAnswer != null)
 				{
-					moodValue = moodAnswer.toString();
+					try
+					{
+						movieGenreValue = movieAnswer.get("text").toString();
+					}
+					catch(movieErr)
+					{
+						movieGenreValue = movieAnswer.toString();
+					}
+				}
+			}
+			if(answers.containsKey("songType"))
+			{
+				songAnswer = answers.get("songType");
+				if(songAnswer != null)
+				{
+					try
+					{
+						songTypeValue = songAnswer.get("text").toString();
+					}
+					catch(songErr)
+					{
+						songTypeValue = songAnswer.toString();
+					}
+				}
+			}
+			if(answers.containsKey("diet"))
+			{
+				dietAnswer = answers.get("diet");
+				if(dietAnswer != null)
+				{
+					try
+					{
+						dietValue = dietAnswer.get("text").toString();
+					}
+					catch(dietErr)
+					{
+						dietValue = dietAnswer.toString();
+					}
 				}
 			}
 		}
-		if(answers.containsKey("movieGenre"))
-		{
-			movieAnswer = answers.get("movieGenre");
-			if(movieAnswer != null)
-			{
-				try
-				{
-					movieGenreValue = movieAnswer.get("text").toString();
-				}
-				catch(movieErr)
-				{
-					movieGenreValue = movieAnswer.toString();
-				}
-			}
-		}
-		if(answers.containsKey("songType"))
-		{
-			songAnswer = answers.get("songType");
-			if(songAnswer != null)
-			{
-				try
-				{
-					songTypeValue = songAnswer.get("text").toString();
-				}
-				catch(songErr)
-				{
-					songTypeValue = songAnswer.toString();
-				}
-			}
-		}
-		if(answers.containsKey("diet"))
-		{
-			dietAnswer = answers.get("diet");
-			if(dietAnswer != null)
-			{
-				try
-				{
-					dietValue = dietAnswer.get("text").toString();
-				}
-				catch(dietErr)
-				{
-					dietValue = dietAnswer.toString();
-				}
-			}
-		}
-	}
-
 		if(movieGenreValue != null && movieGenreValue.toLowerCase().contains("surprise"))
 		{
 			movieGenreValue = "random";
@@ -1253,333 +1199,332 @@ if(context_id.equals("combo_context"))
 		{
 			dietValue = "";
 		}
-
-		info "🟪 combo_context prefs mood/movie/song/diet = " + moodValue + "/" + movieGenreValue + "/" + songTypeValue + "/" + dietValue;
-
-	responseText = "Here is your entertainment combo.";
-
-	payload = Map();
-	payload.put("mood",moodValue);
-	payload.put("movieGenre",movieGenreValue);
-	payload.put("songType",songTypeValue);
-	payload.put("diet",dietValue);
-	apiResult = Map();
-	apiSuccess = true;
-
-	try
-	{
-		apiResult = invokeurl
-		[
-			url : "https://zorek.onrender.com/recommendations"
-			type : POST
-			parameters : payload
-		];
-		info "🟪 combo_context API result " + apiResult;
-	}
-	catch(apiErrCombo)
-	{
-		apiSuccess = false;
-		info "🟥 combo_context invokeurl error " + apiErrCombo;
-	}
-
-	if(apiSuccess == false || apiResult == null || apiResult.isEmpty())
-	{
-		info "🟪 combo_context using fallback cards due to API timeout/failure";
+		// build payload for combo recommendations
+		responseText = "Here is your entertainment combo.";
+		payload = Map();
+		payload.put("mood",moodValue);
+		payload.put("movieGenre",movieGenreValue);
+		payload.put("songType",songTypeValue);
+		payload.put("diet",dietValue);
+		apiResult = Map();
+		apiSuccess = true;
+		try
+		{
+			apiResult = invokeurl
+			[
+				url :"https://zorek.onrender.com/recommendations"
+				type :POST
+				parameters:payload
+			];
+		}
+		catch(apiErrCombo)
+		{
+			apiSuccess = false;
+		}
+		if(apiSuccess == false || apiResult == null || apiResult.isEmpty())
+		{
+			cardCollection = Collection();
+			movieCard = Map();
+			movieCard.put("id","fallback_combo_movie_" + zoho.currenttime.toLong());
+			movieCard.put("title","Movie Recommendation");
+			movieCard.put("subtitle","Popular " + movieGenreValue + " movies");
+			movieActions = Collection();
+			movieAction = Map();
+			movieAction.put("label","Watch Now");
+			movieAction.put("type","url");
+			movieAction.put("name","fallback_combo_movie_action");
+			movieAction.put("link","https://www.imdb.com/search/title/?genres=" + movieGenreValue);
+			movieActions.insert(movieAction);
+			movieCard.put("actions",movieActions);
+			cardCollection.insert(movieCard);
+			songCard = Map();
+			songCard.put("id","fallback_combo_song_" + zoho.currenttime.toLong());
+			songCard.put("title",songTypeValue + " Playlist");
+			songCard.put("subtitle","Curated " + songTypeValue + " music");
+			songActions = Collection();
+			songAction = Map();
+			songAction.put("label","Listen");
+			songAction.put("type","url");
+			songAction.put("name","fallback_combo_song_action");
+			songAction.put("link","https://open.spotify.com/search/" + songTypeValue);
+			songActions.insert(songAction);
+			songCard.put("actions",songActions);
+			cardCollection.insert(songCard);
+			foodCard = Map();
+			foodCard.put("id","fallback_combo_food_" + zoho.currenttime.toLong());
+			foodCard.put("title",dietValue + " Recipe");
+			foodCard.put("subtitle","Delicious " + dietValue + " options");
+			foodActions = Collection();
+			foodAction = Map();
+			foodAction.put("label","View Recipes");
+			foodAction.put("type","url");
+			foodAction.put("name","fallback_combo_food_action");
+			foodAction.put("link","https://www.foodnetwork.com/search/" + dietValue);
+			foodActions.insert(foodAction);
+			foodCard.put("actions",foodActions);
+			cardCollection.insert(foodCard);
+			response = Map();
+			response.put("action","reply");
+			replies = Collection();
+			introReply = Map();
+			introReply.put("text","Here is a quick combo based on your picks.");
+			replies.insert(introReply);
+			optionNumbers = Collection();
+			cardIndex = 1;
+			cardUrlsMap = Map();
+			for each card in cardCollection
+			{
+				try
+				{
+					if(card != null)
+					{
+						cardTitle = "";
+						cardSubtitle = "";
+						cardImage = "";
+						cardUrl = "";
+						if(card.containsKey("title"))
+						{
+							cardTitle = card.get("title").toString();
+						}
+						if(card.containsKey("subtitle"))
+						{
+							cardSubtitle = card.get("subtitle").toString();
+						}
+						if(card.containsKey("image") && card.get("image") != null)
+						{
+							img = card.get("image").toString();
+							if(img != "" && img != "null")
+							{
+								cardImage = img;
+							}
+						}
+						if(card.containsKey("actions"))
+						{
+							acts = card.get("actions");
+							if(acts != null && acts.size() > 0)
+							{
+								act = acts.get(0);
+								if(act != null && act.containsKey("link"))
+								{
+									url = act.get("link").toString();
+									if(url != "" && url != "null")
+									{
+										cardUrl = url;
+									}
+								}
+							}
+						}
+						replyText = cardIndex.toString() + ". " + cardTitle;
+						if(cardSubtitle != "")
+						{
+							replyText = replyText + " - " + cardSubtitle;
+						}
+						if(cardUrl != "")
+						{
+							replyText = replyText + "\n" + cardUrl;
+							cardUrlsMap.put(cardIndex.toString(),cardUrl);
+						}
+						replyMap = Map();
+						replyMap.put("text",replyText);
+						if(cardImage != "")
+						{
+							replyMap.put("image",cardImage);
+						}
+						replies.insert(replyMap);
+						optionNumbers.insert(cardIndex.toString());
+						cardIndex = cardIndex + 1;
+					}
+				}
+				catch(cardErr)
+				{
+				}
+			}
+			if(cardUrlsMap != null && cardUrlsMap.size() > 0)
+			{
+				try
+				{
+					if(portalName != "" && portalName != null)
+					{
+						zoho.salesiq.visitorsession.set(portalName,{"zorek_cards":cardUrlsMap});
+					}
+				}
+				catch(sessionErr)
+				{
+				}
+			}
+			selectReply = Map();
+			selectReply.put("text","Select from given options");
+			replies.insert(selectReply);
+			response.put("replies",replies);
+			selectInput = Map();
+			selectInput.put("type","select");
+			selectInput.put("options",optionNumbers);
+			response.put("input",selectInput);
+			response.put("suggestions",{"My Pick Combo","Suggest Something","Book an Event","Connect with human"});
+			hasReturned = true;
+			return response;
+		}
 		cardCollection = Collection();
-		movieCard = Map();
-	movieCard.put("id","fallback_combo_movie_" + zoho.currenttime.toLong());
-	movieCard.put("title","Movie Recommendation");
-	movieCard.put("subtitle","Popular " + movieGenreValue + " movies");
-	movieActions = Collection();
-	movieAction = Map();
-	movieAction.put("label","Watch Now");
-	movieAction.put("type","url");
-	movieAction.put("name","fallback_combo_movie_action");
-	movieAction.put("link","https://www.imdb.com/search/title/?genres=" + movieGenreValue);
-	movieActions.insert(movieAction);
-	movieCard.put("actions",movieActions);
-		cardCollection.insert(movieCard);
-		
-		songCard = Map();
-	songCard.put("id","fallback_combo_song_" + zoho.currenttime.toLong());
-	songCard.put("title",songTypeValue + " Playlist");
-	songCard.put("subtitle","Curated " + songTypeValue + " music");
-	songActions = Collection();
-	songAction = Map();
-	songAction.put("label","Listen");
-	songAction.put("type","url");
-	songAction.put("name","fallback_combo_song_action");
-	songAction.put("link","https://open.spotify.com/search/" + songTypeValue);
-	songActions.insert(songAction);
-	songCard.put("actions",songActions);
-		cardCollection.insert(songCard);
-		
-		foodCard = Map();
-	foodCard.put("id","fallback_combo_food_" + zoho.currenttime.toLong());
-	foodCard.put("title",dietValue + " Recipe");
-	foodCard.put("subtitle","Delicious " + dietValue + " options");
-	foodActions = Collection();
-	foodAction = Map();
-	foodAction.put("label","View Recipes");
-	foodAction.put("type","url");
-	foodAction.put("name","fallback_combo_food_action");
-	foodAction.put("link","https://www.foodnetwork.com/search/" + dietValue);
-	foodActions.insert(foodAction);
-	foodCard.put("actions",foodActions);
-		cardCollection.insert(foodCard);
-		
-		response = Map();
-	response.put("action","reply");
-	replies = Collection();
-	introReply = Map();
-	introReply.put("text","Here is a quick combo based on your picks.");
-	replies.insert(introReply);
-	optionNumbers = Collection();
-	cardIndex = 1;
-	cardUrlsMap = Map();
-	for each card in cardCollection
-	{
-		try
+		cardsList = null;
+		if(apiResult.containsKey("type") && apiResult.get("type").toString().equalsIgnoreCase("multiple-product") && apiResult.containsKey("elements"))
 		{
-			if(card != null)
+			cardsList = apiResult.get("elements");
+		}
+		else if(apiResult.containsKey("cards"))
+		{
+			cardsList = apiResult.get("cards");
+		}
+		if(apiResult.containsKey("text"))
+		{
+			try
 			{
-				cardTitle = "";
-				cardSubtitle = "";
-				cardImage = "";
-				cardUrl = "";
-				if(card.containsKey("title"))
-				{
-					cardTitle = card.get("title").toString();
-				}
-				if(card.containsKey("subtitle"))
-				{
-					cardSubtitle = card.get("subtitle").toString();
-				}
-				if(card.containsKey("image") && card.get("image") != null)
-				{
-					imageVal = card.get("image").toString();
-					if(imageVal != "" && imageVal != null && imageVal != "null")
-					{
-						cardImage = imageVal;
-					}
-				}
-				if(card.containsKey("actions"))
-				{
-					actionsList = card.get("actions");
-					if(actionsList != null && actionsList.size() > 0)
-					{
-						firstAction = actionsList.get(0);
-						if(firstAction != null && firstAction.containsKey("link"))
-						{
-							urlVal = firstAction.get("link").toString();
-							if(urlVal != "" && urlVal != null && urlVal != "null")
-							{
-								cardUrl = urlVal;
-							}
-						}
-					}
-				}
-				replyText = cardIndex.toString() + ". " + cardTitle;
-				if(cardSubtitle != "")
-				{
-					replyText = replyText + " - " + cardSubtitle;
-				}
-				if(cardUrl != "")
-				{
-					replyText = replyText + " → " + cardUrl;
-					cardUrlsMap.put(cardIndex.toString(),cardUrl);
-				}
-				replyMap = Map();
-				replyMap.put("text",replyText);
-				if(cardImage != "")
-				{
-					replyMap.put("image",cardImage);
-				}
-				replies.insert(replyMap);
-				optionNumbers.insert(cardIndex.toString());
-				cardIndex = cardIndex + 1;
+				responseText = apiResult.get("text").toString();
+			}
+			catch(comboTextErr)
+			{
+				responseText = responseText;
 			}
 		}
-		catch(cardErr)
+		if(cardsList != null && cardsList.size() > 0)
 		{
-			info "🟥 combo_context card error " + cardErr;
+			cardCollection = cardsList;
 		}
-	}
-	// Store card URLs in visitor session
-	storeCardUrls(cardUrlsMap,"🟪 combo_context",portalName);
-	selectReply = Map();
-	selectReply.put("text","Select from given options");
-	replies.insert(selectReply);
-	response.put("replies",replies);
-	selectInput = Map();
-	selectInput.put("type","select");
-	selectInput.put("options",optionNumbers);
-	response.put("input",selectInput);
-		response.put("suggestions",{"My Pick Combo","Suggest Something","Book an Event","Connect with human"});
-		info "🟪 combo_context returning response - action=" + response.get("action") + ", replies=" + replies.size();
-		hasReturned = true;
-		return response;
-	}
-
-cardCollection = Collection();
-cardsList = null;
-if(apiResult.containsKey("type") && apiResult.get("type").toString().equalsIgnoreCase("multiple-product") && apiResult.containsKey("elements"))
-{
-	cardsList = apiResult.get("elements");
-}
-else if(apiResult.containsKey("cards"))
-{
-	cardsList = apiResult.get("cards");
-}
-if(apiResult.containsKey("text"))
-{
-	try
-	{
-		responseText = apiResult.get("text").toString();
-	}
-	catch(comboTextErr)
-	{
-		responseText = responseText;
-	}
-}
-if(cardsList != null && cardsList.size() > 0)
-{
-	cardCollection = cardsList;
-}
-
-	info "🟪 combo_context cards count " + cardCollection.size();
-
-	if(cardCollection.size() == 0)
-	{
-		fallbackCard = Map();
-	fallbackCard.put("id","fallback_combo_empty_" + zoho.currenttime.toLong());
-	fallbackCard.put("title","No Combo Ready");
-	fallbackCard.put("subtitle","Try changing your mood or genre.");
-	fallbackActions = Collection();
-	actionMap = Map();
-	actionMap.put("label","Retry");
-	actionMap.put("type","url");
-	actionMap.put("name","fallback_combo_retry_action");
-	actionMap.put("link","https://zorek.onrender.com");
-	fallbackActions.insert(actionMap);
-	fallbackCard.put("actions",fallbackActions);
-		cardCollection.insert(fallbackCard);
-	}
-
-	if(cardCollection.size() > 0)
-	{
-		response = Map();
-		response.put("action","reply");
-	replies = Collection();
-	introReply = Map();
-	introReply.put("text",responseText);
-	replies.insert(introReply);
-	optionNumbers = Collection();
-	cardIndex = 1;
-	cardUrlsMap = Map();
-	for each card in cardCollection
-	{
-		try
+		if(cardCollection.size() == 0)
 		{
-			if(card != null)
+			fallbackCard = Map();
+			fallbackCard.put("id","fallback_combo_empty_" + zoho.currenttime.toLong());
+			fallbackCard.put("title","No Combo Ready");
+			fallbackCard.put("subtitle","Try changing your mood or genre.");
+			fallbackActions = Collection();
+			actionMap = Map();
+			actionMap.put("label","Retry");
+			actionMap.put("type","url");
+			actionMap.put("name","fallback_combo_retry_action");
+			actionMap.put("link","https://zorek.onrender.com");
+			fallbackActions.insert(actionMap);
+			fallbackCard.put("actions",fallbackActions);
+			cardCollection.insert(fallbackCard);
+		}
+		if(cardCollection.size() > 0)
+		{
+			response = Map();
+			response.put("action","reply");
+			replies = Collection();
+			introReply = Map();
+			introReply.put("text",responseText);
+			replies.insert(introReply);
+			optionNumbers = Collection();
+			cardIndex = 1;
+			cardUrlsMap = Map();
+			for each card in cardCollection
 			{
-				cardTitle = "";
-				cardSubtitle = "";
-				cardImage = "";
-				cardUrl = "";
-				if(card.containsKey("title"))
+				try
 				{
-					cardTitle = card.get("title").toString();
-				}
-				if(card.containsKey("subtitle"))
-				{
-					cardSubtitle = card.get("subtitle").toString();
-				}
-				if(card.containsKey("image") && card.get("image") != null)
-				{
-					imageVal = card.get("image").toString();
-					if(imageVal != "" && imageVal != null && imageVal != "null")
+					if(card != null)
 					{
-						cardImage = imageVal;
-					}
-				}
-				if(card.containsKey("actions"))
-				{
-					actionsList = card.get("actions");
-					if(actionsList != null && actionsList.size() > 0)
-					{
-						firstAction = actionsList.get(0);
-						if(firstAction != null && firstAction.containsKey("link"))
+						cardTitle = "";
+						cardSubtitle = "";
+						cardImage = "";
+						cardUrl = "";
+						if(card.containsKey("title"))
 						{
-							urlVal = firstAction.get("link").toString();
-							if(urlVal != "" && urlVal != null && urlVal != "null")
+							cardTitle = card.get("title").toString();
+						}
+						if(card.containsKey("subtitle"))
+						{
+							cardSubtitle = card.get("subtitle").toString();
+						}
+						if(card.containsKey("image") && card.get("image") != null)
+						{
+							img = card.get("image").toString();
+							if(img != "" && img != "null")
 							{
-								cardUrl = urlVal;
+								cardImage = img;
 							}
 						}
+						if(card.containsKey("actions"))
+						{
+							acts = card.get("actions");
+							if(acts != null && acts.size() > 0)
+							{
+								act = acts.get(0);
+								if(act != null && act.containsKey("link"))
+								{
+									url = act.get("link").toString();
+									if(url != "" && url != "null")
+									{
+										cardUrl = url;
+									}
+								}
+							}
+						}
+						replyText = cardIndex.toString() + ". " + cardTitle;
+						if(cardSubtitle != "")
+						{
+							replyText = replyText + " - " + cardSubtitle;
+						}
+						if(cardUrl != "")
+						{
+							replyText = replyText + "\n" + cardUrl;
+							cardUrlsMap.put(cardIndex.toString(),cardUrl);
+						}
+						replyMap = Map();
+						replyMap.put("text",replyText);
+						if(cardImage != "")
+						{
+							replyMap.put("image",cardImage);
+						}
+						replies.insert(replyMap);
+						optionNumbers.insert(cardIndex.toString());
+						cardIndex = cardIndex + 1;
 					}
 				}
-				replyText = cardIndex.toString() + ". " + cardTitle;
-				if(cardSubtitle != "")
+				catch(cardErr)
 				{
-					replyText = replyText + " - " + cardSubtitle;
 				}
-				if(cardUrl != "")
-				{
-					replyText = replyText + " → " + cardUrl;
-					cardUrlsMap.put(cardIndex.toString(),cardUrl);
-				}
-				replyMap = Map();
-				replyMap.put("text",replyText);
-				if(cardImage != "")
-				{
-					replyMap.put("image",cardImage);
-				}
-				replies.insert(replyMap);
-				optionNumbers.insert(cardIndex.toString());
-				cardIndex = cardIndex + 1;
 			}
+			if(cardUrlsMap != null && cardUrlsMap.size() > 0)
+			{
+				try
+				{
+					if(portalName != "" && portalName != null)
+					{
+						zoho.salesiq.visitorsession.set(portalName,{"zorek_cards":cardUrlsMap});
+					}
+				}
+				catch(sessionErr)
+				{
+				}
+			}
+			selectReply = Map();
+			selectReply.put("text","Select from given options");
+			replies.insert(selectReply);
+			response.put("replies",replies);
+			selectInput = Map();
+			selectInput.put("type","select");
+			selectInput.put("options",optionNumbers);
+			response.put("input",selectInput);
+			suggestionOptions = Collection();
+			suggestionOptions.insert("My Pick Combo");
+			suggestionOptions.insert("Suggest Something");
+			suggestionOptions.insert("Book an Event");
+			suggestionOptions.insert("Connect with human");
+			response.put("suggestions",suggestionOptions);
+			hasReturned = true;
+			return response;
 		}
-		catch(cardErr)
+		else
 		{
-			info "🟥 combo_context card error " + cardErr;
+			response = Map();
+			response.put("action","reply");
+			response.put("replies",{"I couldn't build a combo. Please adjust your preferences."});
+			response.put("suggestions",{"My Pick Combo","Suggest Something","Book an Event","Connect with human"});
+			hasReturned = true;
+			return response;
 		}
-	}
-	// Store card URLs in visitor session
-	storeCardUrls(cardUrlsMap,"🟪 combo_context",portalName);
-	selectReply = Map();
-	selectReply.put("text","Select from given options");
-	replies.insert(selectReply);
-	response.put("replies",replies);
-	selectInput = Map();
-	selectInput.put("type","select");
-	selectInput.put("options",optionNumbers);
-	response.put("input",selectInput);
-		suggestionOptions = Collection();
-		suggestionOptions.insert("My Pick Combo");
-		suggestionOptions.insert("Suggest Something");
-		suggestionOptions.insert("Book an Event");
-		suggestionOptions.insert("Connect with human");
-		response.put("suggestions",suggestionOptions);
-	info "🟪 combo_context VALIDATING RESPONSE - action=" + response.get("action") + ", hasReplies=" + response.containsKey("replies") + ", repliesCount=" + replies.size() + ", hasSuggestions=" + response.containsKey("suggestions");
-		info "🟪 combo_context FULL RESPONSE: " + response;
-		hasReturned = true;
-		return response;
-	}
-	else
-	{
-		response = Map();
-		response.put("action","reply");
-		response.put("replies",{"I couldn't build a combo. Please adjust your preferences."});
-		response.put("suggestions",{"My Pick Combo","Suggest Something","Book an Event","Connect with human"});
-		info "🟪 combo_context returning text reply (no cards)";
-		hasReturned = true;
-		return response;
-	}
 	}
 	catch(comboContextErr)
 	{
-		info "🟥 combo_context fatal error " + comboContextErr;
 		response = Map();
 		response.put("action","reply");
 		response.put("replies",{"Unable to build a combo right now. Please try again later."});
@@ -1589,17 +1534,14 @@ if(cardsList != null && cardsList.size() > 0)
 	}
 }
 
-// ---------------- Default Fallback ----------------
+// default fallback if no context matched
 if(!hasReturned)
 {
-	info "⚠️ ContextHandler: No matching context_id or no response returned, using default fallback";
 	response = Map();
 	response.put("action","reply");
 	response.put("replies",{"I didn't understand that. Please choose an option."});
 	response.put("suggestions",{"Suggest Something","Book an Event","My Pick Combo","Connect with human"});
-	info "📤 ContextHandler: Returning default fallback response";
 	hasReturned = true;
 }
 
-// Always return response (guaranteed to be set by now)
 return response;

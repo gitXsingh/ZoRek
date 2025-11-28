@@ -1,5 +1,0 @@
-response = Map();
-response.put("action","reply");
-response.put("replies",{"Hey!","Looking for a new home or office space?","I can help!"});
-response.put("input",{"type":"select","options":{"Just browsing","Looking for a property","Need support"}});
-return response;
