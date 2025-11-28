@@ -1258,6 +1258,10 @@ def home():
             margin-top: 1rem;
         }
         .muted { color: var(--muted); }
+        .category-fields {
+            display: grid;
+            gap: 0.8rem;
+        }
         @media (max-width: 640px) {
             .features, .card-grid { grid-template-columns: 1fr; }
             .workbench { grid-template-columns: 1fr; }
@@ -1273,31 +1277,12 @@ def home():
     </header>
 
     <main class="content">
-        <section class="features">
-            <article class="feature-card">
-                <h3>Suggest Something</h3>
-                <p>Movies, books, music, games, and food cards straight from TMDB, Google Books, Spotify, CheapShark, and Spoonacular.</p>
-            </article>
-            <article class="feature-card">
-                <h3>Book an Event</h3>
-                <p>SeatGeek geo lookups with Indian fallbacks (BookMyShow, Google, Zoho ShowTime) so visitors never hit a dead end.</p>
-            </article>
-            <article class="feature-card">
-                <h3>My Pick Combo</h3>
-                <p>Curate a movie + song + dish combo, optionally layered with AI commentary for a concierge vibe.</p>
-            </article>
-            <article class="feature-card">
-                <h3>SalesIQ + Web</h3>
-                <p>Use these tools inline or keep chatting with the SalesIQ bot floating on every page—two entry points, one brain.</p>
-            </article>
-        </section>
-
         <section class="workbench">
             <div class="tool-card">
                 <h2>🎬 Suggest Something</h2>
                 <form id="suggestForm">
                     <label>Category
-                        <select name="category" required>
+                        <select name="category" id="categorySelect" required>
                             <option value="movies">Movies</option>
                             <option value="books">Books</option>
                             <option value="games">Games</option>
@@ -1305,27 +1290,37 @@ def home():
                             <option value="food">Food</option>
                         </select>
                     </label>
-                    <label>Genre (Movies) / Mood (Music)
-                        <input name="genre" placeholder="Action, Cozy, Upbeat..." />
-                    </label>
-                    <label>Subject (Books) / Secondary filter
-                        <input name="subject" placeholder="Mystery, Productivity..." />
-                    </label>
-                    <label>IMDb Rating (e.g., 7.5+)
-                        <input name="minImdb" placeholder="7.0+" />
-                    </label>
-                    <label>Year / Filters
-                        <input name="year" placeholder="2018+" />
-                    </label>
-                    <label>Keyword (Games / Music)
-                        <input name="keyword" placeholder="Horror, Indie pop..." />
-                    </label>
-                    <label>Diet preference (Food)
-                        <input name="diet" placeholder="Veg, Vegan, Keto..." />
-                    </label>
-                    <label>Song type (Music)
-                        <input name="songType" placeholder="Lo-fi, Classical..." />
-                    </label>
+                    <div id="moviesFields" class="category-fields">
+                        <label>Genre
+                            <input name="genre" placeholder="Action, Drama, Sci-Fi..." />
+                        </label>
+                        <label>Minimum IMDb Rating
+                            <input name="minImdb" placeholder="7.0+, 8.0..." />
+                        </label>
+                        <label>Year
+                            <input name="year" placeholder="2015+, 2020..." />
+                        </label>
+                    </div>
+                    <div id="booksFields" class="category-fields" style="display:none;">
+                        <label>Subject
+                            <input name="subject" placeholder="Mystery, Fiction, Biography..." />
+                        </label>
+                    </div>
+                    <div id="gamesFields" class="category-fields" style="display:none;">
+                        <label>Keyword
+                            <input name="keyword" placeholder="Horror, RPG, Strategy..." />
+                        </label>
+                    </div>
+                    <div id="musicFields" class="category-fields" style="display:none;">
+                        <label>Song Type / Mood
+                            <input name="songType" placeholder="Pop, Classical, Lo-fi..." />
+                        </label>
+                    </div>
+                    <div id="foodFields" class="category-fields" style="display:none;">
+                        <label>Diet Preference
+                            <input name="diet" placeholder="Veg, Vegan, Keto..." />
+                        </label>
+                    </div>
                     <button type="submit">Fetch Cards</button>
                     <p class="status" id="suggestStatus"></p>
                 </form>
@@ -1377,9 +1372,19 @@ def home():
         </section>
 
         <section class="chatbox">
-            <h2>Prefer chatting?</h2>
-            <p class="muted">ZoRek’s Zoho SalesIQ bot is still running in the corner. Use whichever path feels natural—everything syncs.</p>
-            <button onclick="openSalesIQ()">Open Chatbot</button>
+            <div class="tool-card" style="max-width:600px;margin:0 auto;">
+                <h2>🎵 Spotify Integration</h2>
+                <p class="muted">Connect Spotify to get better music recommendations and direct track links.</p>
+                <div id="spotifyStatus" style="margin:1rem 0;padding:0.75rem;background:rgba(255,255,255,0.05);border-radius:8px;">
+                    <p>Checking connection status...</p>
+                </div>
+                <button id="spotifyBtn" onclick="handleSpotifyAuth()" style="width:100%;">Connect to Spotify</button>
+            </div>
+            <div style="margin-top:2rem;">
+                <h2>Prefer chatting?</h2>
+                <p class="muted">ZoRek's Zoho SalesIQ bot is still running in the corner. Use whichever path feels natural—everything syncs.</p>
+                <button onclick="openSalesIQ()">Open Chatbot</button>
+            </div>
         </section>
     </main>
 
@@ -1419,21 +1424,35 @@ def home():
         if(el){ el.textContent = message || ""; }
     };
 
+    const updateSuggestFormFields = () => {
+        const category = document.getElementById("categorySelect").value;
+        const allFields = document.querySelectorAll(".category-fields");
+        allFields.forEach(f => f.style.display = "none");
+        const targetFields = document.getElementById(category + "Fields");
+        if(targetFields) targetFields.style.display = "block";
+    };
+
     const handleSuggest = async (event) => {
         event.preventDefault();
         const form = event.target;
-        const payload = {
-            category: form.category.value,
-            prefs: {
-                genre: form.genre.value,
-                subject: form.subject.value,
-                minImdb: form.minImdb.value,
-                year: form.year.value,
-                keyword: form.keyword.value,
-                diet: form.diet.value,
-                songType: form.songType.value
-            }
-        };
+        const category = form.category.value;
+        const prefs = {};
+        
+        if(category === "movies") {
+            if(form.genre.value) prefs.genre = form.genre.value;
+            if(form.minImdb.value) prefs.minImdb = form.minImdb.value;
+            if(form.year.value) prefs.year = form.year.value;
+        } else if(category === "books") {
+            if(form.subject.value) prefs.subject = form.subject.value;
+        } else if(category === "games") {
+            if(form.keyword.value) prefs.keyword = form.keyword.value;
+        } else if(category === "music") {
+            if(form.songType.value) prefs.songType = form.songType.value;
+        } else if(category === "food") {
+            if(form.diet.value) prefs.diet = form.diet.value;
+        }
+        
+        const payload = { category, prefs };
         setStatus("suggestStatus", "Fetching cards...");
         try {
             const res = await fetch("/suggest_cards", {method: "POST", headers, body: JSON.stringify(payload)});
@@ -1486,6 +1505,30 @@ def home():
         }
     };
 
+    const checkSpotifyStatus = async () => {
+        try {
+            const res = await fetch("/oauth/spotify/status");
+            const data = await res.json();
+            const statusEl = document.getElementById("spotifyStatus");
+            const btnEl = document.getElementById("spotifyBtn");
+            if(data.connected) {
+                statusEl.innerHTML = '<p style="color:#4ade80;">✅ Connected to Spotify</p>';
+                btnEl.textContent = "Reconnect to Spotify";
+                btnEl.style.background = "rgba(108, 99, 255, 0.5)";
+            } else {
+                statusEl.innerHTML = '<p style="color:#f87171;">❌ Not connected</p>';
+                btnEl.textContent = "Connect to Spotify";
+                btnEl.style.background = "";
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleSpotifyAuth = () => {
+        window.location.href = "/oauth/spotify/start";
+    };
+
     const openSalesIQ = () => {
         if(window.$zoho && $zoho.salesiq){
             $zoho.salesiq.floatwindow.visible("show");
@@ -1498,9 +1541,22 @@ def home():
         const suggestForm = document.getElementById("suggestForm");
         const eventForm = document.getElementById("eventForm");
         const comboForm = document.getElementById("comboForm");
+        const categorySelect = document.getElementById("categorySelect");
+        
         if(suggestForm) suggestForm.addEventListener("submit", handleSuggest);
         if(eventForm) eventForm.addEventListener("submit", handleEvents);
         if(comboForm) comboForm.addEventListener("submit", handleCombo);
+        if(categorySelect) {
+            categorySelect.addEventListener("change", updateSuggestFormFields);
+            updateSuggestFormFields();
+        }
+        
+        checkSpotifyStatus();
+        
+        // Check if redirected from Spotify OAuth
+        if(window.location.search.includes("spotify=connected")) {
+            setTimeout(checkSpotifyStatus, 500);
+        }
     });
     </script>
     <script>window.$zoho=window.$zoho||{};$zoho.salesiq=$zoho.salesiq||{ready:function(){}};</script>
