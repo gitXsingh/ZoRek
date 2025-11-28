@@ -4,6 +4,48 @@ info "📋 ContextHandler answers: " + answers;
 response = Map();
 hasReturned = false;
 
+getPortalName = function(req)
+{
+	portalVal = "";
+	if(req != null)
+	{
+		if(req.containsKey("portal_name"))
+		{
+			portalVal = req.get("portal_name").toString();
+		}
+		else if(req.containsKey("portalName"))
+		{
+			portalVal = req.get("portalName").toString();
+		}
+	}
+	return portalVal;
+};
+
+storeCardUrls = function(cardMap, labelPrefix, portalVal)
+{
+	if(cardMap != null && cardMap.size() > 0)
+	{
+		try
+		{
+			if(portalVal != "" && portalVal != null)
+			{
+				zoho.salesiq.visitorsession.set(portalVal,{"zorek_cards":cardMap});
+				info labelPrefix + " stored " + cardMap.size() + " card URLs in session for portal " + portalVal;
+			}
+			else
+			{
+				info labelPrefix + " skipped session storage (no portal name)";
+			}
+		}
+		catch(sessionErr)
+		{
+			info labelPrefix + " session store error " + sessionErr;
+		}
+	}
+};
+
+portalName = getPortalName(request);
+
 // ---------------- Suggest Something ----------------
 if(context_id.equals("suggest_context"))
 {
@@ -444,6 +486,7 @@ if(context_id.equals("suggest_context"))
 			replies.insert(introReply);
 			optionNumbers = Collection();
 			cardIndex = 1;
+			cardUrlsMap = Map();
 			for each card in cardCollection
 			{
 				try
@@ -494,6 +537,7 @@ if(context_id.equals("suggest_context"))
 						if(cardUrl != "")
 						{
 							replyText = replyText + "\n🔗 " + cardUrl;
+							cardUrlsMap.put(cardIndex.toString(),cardUrl);
 						}
 						replyMap = Map();
 						replyMap.put("text",replyText);
@@ -511,6 +555,8 @@ if(context_id.equals("suggest_context"))
 					info "🟥 suggest_context fallback card error " + cardErr;
 				}
 			}
+			// Store card URLs in visitor session
+			storeCardUrls(cardUrlsMap,"🟦 suggest_context fallback",portalName);
 			selectReply = Map();
 			selectReply.put("text","Select from given options");
 			replies.insert(selectReply);
@@ -581,6 +627,7 @@ if(context_id.equals("suggest_context"))
 			replies.insert(introReply);
 			optionNumbers = Collection();
 			cardIndex = 1;
+			cardUrlsMap = Map();
 			for each card in cardCollection
 			{
 				try
@@ -631,6 +678,7 @@ if(context_id.equals("suggest_context"))
 						if(cardUrl != "")
 						{
 							replyText = replyText + "\n🔗 " + cardUrl;
+							cardUrlsMap.put(cardIndex.toString(),cardUrl);
 						}
 						replyMap = Map();
 						replyMap.put("text",replyText);
@@ -648,6 +696,8 @@ if(context_id.equals("suggest_context"))
 					info "🟥 suggest_context card error " + cardErr;
 				}
 			}
+			// Store card URLs in visitor session for retrieval when user selects a number
+			storeCardUrls(cardUrlsMap,"🟦 suggest_context",portalName);
 			selectReply = Map();
 			selectReply.put("text","Select from given options");
 			replies.insert(selectReply);
@@ -762,18 +812,38 @@ if(context_id.equals("event_context"))
 			}
 		}
 
-		if(cityValue == "" || cityValue == null)
-		{
-			cityValue = "Delhi";
-		}
 		info "🟩 event_context type/city " + eventType + " / " + cityValue;
 
+		// Ensure event type is collected before proceeding
 		if(eventType == "" || eventType == null)
 		{
 			response = Map();
-			response.put("action","reply");
-			response.put("replies",{"Please choose an event type to continue."});
-			response.put("suggestions",{"Movies","Talkshow","Concerts","Find Events"});
+			response.put("action","context");
+			response.put("context_id","event_context");
+			questions = Collection();
+			q1 = Map();
+			q1.put("name","event_type");
+			q1.put("replies",{"What kind of outing do you have in mind?"});
+			q1.put("suggestions",{"Movies (Now Playing)","Concerts","Talkshow","Theater","Sports","Find Events"});
+			questions.insert(q1);
+			response.put("questions",questions);
+			hasReturned = true;
+			return response;
+		}
+
+		// Ensure city is collected before fetching events
+		if(cityValue == "" || cityValue == null)
+		{
+			response = Map();
+			response.put("action","context");
+			response.put("context_id","event_context");
+			questions = Collection();
+			q1 = Map();
+			q1.put("name","city");
+			q1.put("replies",{"Which city should I search in? (e.g., Mumbai, Delhi)"});
+			q1.put("suggestions",{"Mumbai","Delhi","Bengaluru","Hyderabad","Chennai","Pune","Kolkata","Ahmedabad","Jaipur","Lucknow","Surat","Nagpur","Indore","Thane","Bhopal","Visakhapatnam","Patna","Vadodara","Ghaziabad","Ludhiana","Agra","Nashik","Faridabad","Meerut","Rajkot","Varanasi","Srinagar","Amritsar","Noida","Ranchi","Chandigarh","Raipur","Gwalior","Jodhpur","Coimbatore","Madurai","Vijayawada","Solapur","Tiruchirappalli","Bareilly","Moradabad","Mysore","Tiruppur","Gurgaon","Aligarh","Jalandhar","Bhubaneswar","Salem","Warangal","Guntur","Bhiwandi","Saharanpur","Gorakhpur","Bikaner","Amravati","Jamshedpur","Bhilai","Cuttack","Firozabad","Kochi","Nellore","Bhavnagar","Dehradun","Durgapur","Asansol","Rourkela","Nanded","Kolhapur","Ajmer","Gulbarga","Jamnagar","Ujjain","Loni","Siliguri","Jhansi","Ulhasnagar","Jammu","Sangli-Miraj","Mangalore","Erode","Belgaum","Ambattur","Tirunelveli","Malegaon","Gaya","Jalgaon","Udaipur","Maheshtala","Davangere","Kozhikode","Akola","Kurnool","Rajahmundry","Bokaro","South Dumdum","Bellary","Patiala","Gopalpur","Agartala","Bhagalpur","Muzaffarnagar","Bhatpara","Panihati","Latur","Dhule","Rohtak","Korba","Bilaspur","Muzaffarpur","Ahmednagar","Mathura","Kollam","Avadi","Kadapa","Kamptee","Sambalpur","Shahjahanpur","Satara","Rampur","Shivamogga","Chandrapur","Junagadh","Thrissur","Alwar","Bardhaman","Kulti","Kakinada","Nizamabad","Parbhani","Tumkur","Khammam","Ozhukarai","Bihar Sharif","Panipat","Darbhanga","Bally","Aizawl","Dewas","Ichalkaranji","Tirupati","Karnal","Bathinda","Jalna","Barasat","Kirari Suleman Nagar","Purnia","Satna","Mau","Sonipat","Farrukhabad","Sagar","Durg","Imphal","Ratlam","Hapur","Anantapur","Arrah","Karimnagar","Etawah","Bharatpur","Begusarai","New Delhi","Chhapra","Buxar","Jehanabad","Phusro","Dindigul","Gandhinagar","Baranagar","Tiruvottiyur","Puducherry","Sikar","Thoothukudi","Rewa","Mirzapur","Raichur","Pali","Khora","Vejalpur","Kottayam","Gangtok","Thiruvananthapuram","Port Blair","Kavaratti","Daman","Diu","Silvassa","Panaji","Shillong","Itanagar","Kohima","Dispur"});
+			questions.insert(q1);
+			response.put("questions",questions);
 			hasReturned = true;
 			return response;
 		}
@@ -844,6 +914,7 @@ if(context_id.equals("event_context"))
 		replies.insert(introReply);
 		optionNumbers = Collection();
 		cardIndex = 1;
+		cardUrlsMap = Map();
 		for each card in cardCollection
 		{
 			try
@@ -894,6 +965,7 @@ if(context_id.equals("event_context"))
 					if(cardUrl != "")
 					{
 						replyText = replyText + " → " + cardUrl;
+						cardUrlsMap.put(cardIndex.toString(),cardUrl);
 					}
 					replyMap = Map();
 					replyMap.put("text",replyText);
@@ -911,6 +983,8 @@ if(context_id.equals("event_context"))
 				info "🟥 event_context fallback card error " + cardErr;
 			}
 		}
+		// Store card URLs in visitor session
+		storeCardUrls(cardUrlsMap,"🟩 event_context fallback",portalName);
 		selectReply = Map();
 		selectReply.put("text","Select from given options");
 		replies.insert(selectReply);
@@ -979,6 +1053,7 @@ if(context_id.equals("event_context"))
 			replies.insert(introReply);
 			optionNumbers = Collection();
 			cardIndex = 1;
+			cardUrlsMap = Map();
 			for each card in cardCollection
 			{
 				try
@@ -1029,6 +1104,7 @@ if(context_id.equals("event_context"))
 						if(cardUrl != "")
 						{
 							replyText = replyText + "\n🔗 " + cardUrl;
+							cardUrlsMap.put(cardIndex.toString(),cardUrl);
 						}
 						replyMap = Map();
 						replyMap.put("text",replyText);
@@ -1046,6 +1122,8 @@ if(context_id.equals("event_context"))
 					info "🟥 event_context card error " + cardErr;
 				}
 			}
+			// Store card URLs in visitor session
+			storeCardUrls(cardUrlsMap,"🟩 event_context",portalName);
 			selectReply = Map();
 			selectReply.put("text","Select from given options");
 			replies.insert(selectReply);
@@ -1258,6 +1336,7 @@ if(context_id.equals("combo_context"))
 	replies.insert(introReply);
 	optionNumbers = Collection();
 	cardIndex = 1;
+	cardUrlsMap = Map();
 	for each card in cardCollection
 	{
 		try
@@ -1308,6 +1387,7 @@ if(context_id.equals("combo_context"))
 				if(cardUrl != "")
 				{
 					replyText = replyText + " → " + cardUrl;
+					cardUrlsMap.put(cardIndex.toString(),cardUrl);
 				}
 				replyMap = Map();
 				replyMap.put("text",replyText);
@@ -1325,6 +1405,8 @@ if(context_id.equals("combo_context"))
 			info "🟥 combo_context card error " + cardErr;
 		}
 	}
+	// Store card URLs in visitor session
+	storeCardUrls(cardUrlsMap,"🟪 combo_context",portalName);
 	selectReply = Map();
 	selectReply.put("text","Select from given options");
 	replies.insert(selectReply);
@@ -1394,6 +1476,7 @@ if(cardsList != null && cardsList.size() > 0)
 	replies.insert(introReply);
 	optionNumbers = Collection();
 	cardIndex = 1;
+	cardUrlsMap = Map();
 	for each card in cardCollection
 	{
 		try
@@ -1403,6 +1486,7 @@ if(cardsList != null && cardsList.size() > 0)
 				cardTitle = "";
 				cardSubtitle = "";
 				cardImage = "";
+				cardUrl = "";
 				if(card.containsKey("title"))
 				{
 					cardTitle = card.get("title").toString();
@@ -1414,15 +1498,36 @@ if(cardsList != null && cardsList.size() > 0)
 				if(card.containsKey("image") && card.get("image") != null)
 				{
 					imageVal = card.get("image").toString();
-					if(imageVal != "" && imageVal != null)
+					if(imageVal != "" && imageVal != null && imageVal != "null")
 					{
 						cardImage = imageVal;
+					}
+				}
+				if(card.containsKey("actions"))
+				{
+					actionsList = card.get("actions");
+					if(actionsList != null && actionsList.size() > 0)
+					{
+						firstAction = actionsList.get(0);
+						if(firstAction != null && firstAction.containsKey("link"))
+						{
+							urlVal = firstAction.get("link").toString();
+							if(urlVal != "" && urlVal != null && urlVal != "null")
+							{
+								cardUrl = urlVal;
+							}
+						}
 					}
 				}
 				replyText = cardIndex.toString() + ". " + cardTitle;
 				if(cardSubtitle != "")
 				{
 					replyText = replyText + " - " + cardSubtitle;
+				}
+				if(cardUrl != "")
+				{
+					replyText = replyText + " → " + cardUrl;
+					cardUrlsMap.put(cardIndex.toString(),cardUrl);
 				}
 				replyMap = Map();
 				replyMap.put("text",replyText);
@@ -1440,6 +1545,8 @@ if(cardsList != null && cardsList.size() > 0)
 			info "🟥 combo_context card error " + cardErr;
 		}
 	}
+	// Store card URLs in visitor session
+	storeCardUrls(cardUrlsMap,"🟪 combo_context",portalName);
 	selectReply = Map();
 	selectReply.put("text","Select from given options");
 	replies.insert(selectReply);

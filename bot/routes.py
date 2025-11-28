@@ -9,7 +9,9 @@ import traceback
 import requests
 import sys
 import logging
-from typing import Dict, List
+import os
+from urllib.parse import quote_plus
+from typing import Dict, List, Optional
 
 # Configure logging for Render (ensures logs are visible)
 logging.basicConfig(
@@ -82,6 +84,47 @@ def multiple_product_payload(text: str, cards: List[dict]) -> dict:
         # Keep legacy key so older handlers (or logging) can still access cards
         "cards": safe_cards
     }
+
+
+DEFAULT_CITY_SLUG = os.environ.get("DEFAULT_CITY_SLUG", "mumbai")
+
+
+def select_best_link(category: str, title: str, original_url: Optional[str], listen_url: Optional[str] = None) -> Optional[str]:
+    """
+    Prefer popular India-first apps for each category.
+    """
+    cat = (category or "").lower()
+    sanitized_title = (title or "").strip()
+    query = quote_plus(sanitized_title) if sanitized_title else ""
+    orig_lower = (original_url or "").lower() if original_url else ""
+    
+    if cat == "music":
+        return listen_url or original_url
+    
+    if cat == "movies":
+        if orig_lower and "bookmyshow" in orig_lower:
+            return original_url
+        city_slug = DEFAULT_CITY_SLUG or "mumbai"
+        if query:
+            return f"https://in.bookmyshow.com/explore/movies-{city_slug}?searchQuery={query}"
+        return f"https://in.bookmyshow.com/explore/movies-{city_slug}"
+    
+    if cat == "books":
+        if query:
+            return f"https://www.amazon.in/s?k={query}&i=stripbooks"
+        return "https://www.amazon.in/books-used-books-textbooks/b?ie=UTF8&node=976389031"
+    
+    if cat == "games":
+        if query:
+            return f"https://store.steampowered.com/search/?term={query}"
+        return "https://store.steampowered.com/"
+    
+    if cat == "food":
+        if query:
+            return f"https://www.zomato.com/search?what={query}&where=India"
+        return "https://www.zomato.com/india"
+    
+    return original_url
 
 
 FALLBACK_SUGGESTIONS = {
@@ -413,13 +456,15 @@ def create_bot_routes(
                 valid_url = url if url and str(url).strip() and str(url).lower() not in ["null", "none"] else None
                 # Ensure image is valid
                 valid_image = str(image) if image and str(image).strip() and str(image).lower() != "null" else None
+                listen_url = safe_get(it, "listen_url")
+                action_url = select_best_link(category, title, valid_url, listen_url)
                 
                 card = make_card(
                     title=title[:100] if title else "Unknown",
                     desc=desc[:200] if desc else category.title(),
                     img=valid_image,
                     label=action_label,
-                    url=valid_url
+                    url=action_url
                 )
                 cards.append(card)
                 logger.info(f"Created card: {card.get('title', 'Unknown')[:50]} - URL: {bool(card.get('actions', [{}])[0].get('link'))}")
@@ -780,18 +825,20 @@ def create_bot_routes(
             
             # Determine song source
             song_source = "Spotify"
-            if safe_get(song, "url"):
-                song_url = str(safe_get(song, "url"))
-                if "spotify.com" in song_url:
+            song_url_value = str(safe_get(song, "url")) if safe_get(song, "url") else None
+            if song_url_value:
+                if "spotify.com" in song_url_value:
                     song_source = "Spotify"
-                elif "itunes.apple.com" in song_url or "music.apple.com" in song_url:
+                elif "itunes.apple.com" in song_url_value or "music.apple.com" in song_url_value:
                     song_source = "iTunes"
             
+            song_listen_url = safe_get(song, "listen_url")
             song_result = {
                 "text": str(safe_get(song, "text", "")),
-                "url": str(safe_get(song, "url")) if safe_get(song, "url") else None,
+                "url": song_url_value,
                 "image": str(safe_get(song, "image")) if safe_get(song, "image") else None,
-                "source": str(safe_get(song, "source", song_source))
+                "source": str(safe_get(song, "source", song_source)),
+                "listen_url": song_listen_url if song_listen_url else song_url_value
             }
 
             if not song_result["text"].strip():
@@ -814,12 +861,13 @@ def create_bot_routes(
                 movie_title = str(movie_result["text"]).replace("🎬", "").strip()
                 if " — " in movie_title:
                     movie_title = movie_title.split(" — ")[0].strip()
+                movie_url = select_best_link("movies", movie_title, movie_result.get("url"), None)
                 cards.append(make_card(
                     title=movie_title[:100] if movie_title else "Movie",
                     desc=f"Movie | {movie_genre.title()}" if movie_genre else "Movie",
                     img=movie_result.get("image") or movie_result.get("poster"),
                     label="View",
-                    url=movie_result.get("url")
+                    url=movie_url
                 ))
             
             # Song card
@@ -827,12 +875,13 @@ def create_bot_routes(
                 song_title = str(song_result["text"]).replace("🎵", "").strip()
                 if " — " in song_title:
                     song_title = song_title.split(" — ")[0].strip()
+                song_url_preferred = select_best_link("music", song_title, song_result.get("url"), song_result.get("listen_url"))
                 cards.append(make_card(
                     title=song_title[:100] if song_title else "Song",
                     desc=f"Music | {song_type.title()}" if song_type else "Music",
                     img=song_result.get("image"),
                     label="Listen",
-                    url=song_result.get("url")
+                    url=song_url_preferred
                 ))
             
             # Food card
@@ -840,12 +889,13 @@ def create_bot_routes(
                 food_title = str(food["text"]).replace("🍕", "").strip()
                 if " — " in food_title:
                     food_title = food_title.split(" — ")[0].strip()
+                food_url = select_best_link("food", food_title, food.get("url"), None)
                 cards.append(make_card(
                     title=food_title[:100] if food_title else "Food",
                     desc=f"Food | {diet.title()}" if diet else "Food",
                     img=food.get("image"),
                     label="View Recipe",
-                    url=food.get("url")
+                    url=food_url
                 ))
             
             # Ensure cards array is never empty

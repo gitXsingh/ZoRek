@@ -58,7 +58,7 @@ else if(msg.equalsIgnoreCase("Book an Event"))
 	q2 = Map();
 	q2.put("name","city");
 	q2.put("replies",{"Which city should I search in? (e.g., Mumbai, Delhi)"});
-	q2.put("suggestions",{"Mumbai","Delhi","Bengaluru","Hyderabad","Chennai","Pune"});
+	q2.put("suggestions",{"Mumbai","Delhi","Bengaluru","Hyderabad","Chennai","Pune","Kolkata","Ahmedabad","Jaipur","Lucknow","Surat","Nagpur","Indore","Thane","Bhopal","Visakhapatnam","Patna","Vadodara","Ghaziabad","Ludhiana","Agra","Nashik","Faridabad","Meerut","Rajkot","Varanasi","Srinagar","Amritsar","Noida","Ranchi","Chandigarh","Raipur","Gwalior","Jodhpur","Coimbatore","Madurai","Vijayawada","Solapur","Tiruchirappalli","Bareilly","Moradabad","Mysore","Tiruppur","Gurgaon","Aligarh","Jalandhar","Bhubaneswar","Salem","Warangal","Guntur","Bhiwandi","Saharanpur","Gorakhpur","Bikaner","Amravati","Noida","Jamshedpur","Bhilai","Cuttack","Firozabad","Kochi","Nellore","Bhavnagar","Dehradun","Durgapur","Asansol","Rourkela","Nanded","Kolhapur","Ajmer","Gulbarga","Jamnagar","Ujjain","Loni","Siliguri","Jhansi","Ulhasnagar","Jammu","Sangli-Miraj","Mangalore","Erode","Belgaum","Ambattur","Tirunelveli","Malegaon","Gaya","Jalgaon","Udaipur","Maheshtala","Davangere","Kozhikode","Akola","Kurnool","Rajahmundry","Bokaro","South Dumdum","Bellary","Patiala","Gopalpur","Agartala","Bhagalpur","Muzaffarnagar","Bhatpara","Panihati","Latur","Dhule","Rohtak","Korba","Bilaspur","Muzaffarpur","Ahmednagar","Mathura","Kollam","Avadi","Kadapa","Kamptee","Sambalpur","Bilaspur","Shahjahanpur","Satara","Rampur","Shivamogga","Chandrapur","Junagadh","Thrissur","Alwar","Bardhaman","Kulti","Kakinada","Nizamabad","Parbhani","Tumkur","Khammam","Ozhukarai","Bihar Sharif","Panipat","Darbhanga","Bally","Aizawl","Dewas","Ichalkaranji","Tirupati","Karnal","Bathinda","Jalna","Barasat","Kirari Suleman Nagar","Purnia","Satna","Mau","Sonipat","Farrukhabad","Sagar","Rourkela","Durg","Imphal","Ratlam","Hapur","Anantapur","Arrah","Karimnagar","Etawah","Bharatpur","Begusarai","New Delhi","Chhapra","Kadapa","Buxar","Jehanabad","Phusro","Dindigul","Gandhinagar","Baranagar","Tiruvottiyur","Puducherry","Sikar","Thoothukudi","Rewa","Mirzapur","Raichur","Pali","Khora","Vejalpur","Kottayam","Gangtok","Thiruvananthapuram","Port Blair","Kavaratti","Daman","Diu","Silvassa","Panaji","Shillong","Aizawl","Itanagar","Kohima","Imphal","Agartala","Dispur"});
 	questions.insert(q1);
 	questions.insert(q2);
 	response.put("questions",questions);
@@ -131,12 +131,60 @@ if(msg != "" && msg.length() <= 2)
 	}
 }
 
-// If user selected a card number, acknowledge it and provide helpful options
+// If user selected a card number, retrieve the URL from session and provide it directly
 if(isNumber)
 {
 	response = Map();
 	response.put("action","reply");
-	response.put("replies",{"Thanks for your selection! Scroll up to find the card with the 🔗 link - you can click that link directly. Or explore more options below."});
+	selectedUrl = "";
+	try
+	{
+		// Get portal name from request, fallback to empty string
+		portalName = "";
+		if(request != null && request.containsKey("portal_name"))
+		{
+			portalName = request.get("portal_name").toString();
+		}
+		else if(request != null && request.containsKey("portalName"))
+		{
+			portalName = request.get("portalName").toString();
+		}
+		
+		// If portal name is available, retrieve from session
+		if(portalName != "" && portalName != null)
+		{
+			cardUrlsData = zoho.salesiq.visitorsession.get(portalName,"zorek_cards");
+			if(cardUrlsData != null && cardUrlsData.containsKey("data"))
+			{
+				sessionData = cardUrlsData.get("data");
+				if(sessionData != null && sessionData.containsKey("zorek_cards"))
+				{
+					cardUrlsMap = sessionData.get("zorek_cards");
+					if(cardUrlsMap != null && cardUrlsMap.containsKey(selectedNumber.toString()))
+					{
+						selectedUrl = cardUrlsMap.get(selectedNumber.toString()).toString();
+					}
+				}
+			}
+		}
+		else
+		{
+			info "🟦 MessageHandler: No portal name available, cannot retrieve card URLs from session";
+		}
+	}
+	catch(sessionErr)
+	{
+		info "🟥 MessageHandler session retrieval error " + sessionErr;
+	}
+	
+	if(selectedUrl != "" && selectedUrl != null)
+	{
+		response.put("replies",{"Great choice! Here's the direct link:\n🔗 " + selectedUrl + "\n\nFeel free to explore more options below."});
+	}
+	else
+	{
+		response.put("replies",{"Thanks for your selection! Feel free to explore more options below or pick another category."});
+	}
 	response.put("suggestions",mainOptions);
 	return response;
 }

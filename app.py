@@ -29,6 +29,8 @@ SPOTIFY_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
 _default_redirect = "http://localhost:5000/oauth/spotify/callback" if os.environ.get("FLASK_ENV") != "production" else "https://zorek.onrender.com/oauth/spotify/callback"
 SPOTIFY_REDIRECT_URI = os.environ.get("SPOTIFY_REDIRECT_URI", _default_redirect)
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "https://zorek.onrender.com").rstrip("/")
+DEFAULT_CITY_SLUG = os.environ.get("DEFAULT_CITY_SLUG", "mumbai")
 # ====================
 
 SPOTIFY_TOKEN = {"access_token": None, "expires_at": 0, "mode": None}  # mode: 'user' or 'app'
@@ -43,6 +45,26 @@ def set_spotify_token(access_token: str, expires_in: int, token_kind: str = "use
 
 def spotify_token_valid() -> bool:
     return bool(SPOTIFY_TOKEN.get("access_token")) and _now_ts() < SPOTIFY_TOKEN.get("expires_at", 0)
+
+
+def _absolute_url(path: str) -> str:
+    """
+    Build an absolute URL using the configured PUBLIC_BASE_URL.
+    """
+    base = PUBLIC_BASE_URL or "https://zorek.onrender.com"
+    base = base.rstrip("/")
+    path = path if path.startswith("/") else f"/{path}"
+    return f"{base}{path}"
+
+
+def spotify_listen_url(track_id: str | None) -> str | None:
+    """
+    Build the ZoRek listen redirect URL for a Spotify track.
+    """
+    if not track_id:
+        return None
+    safe_id = str(track_id).split("?")[0]
+    return _absolute_url(f"/listen/spotify/{safe_id}")
 
 def ensure_spotify_token() -> bool:
     """
@@ -416,10 +438,18 @@ def get_song_recommendation_with_url(song_type: str = "", mood: str = "") -> dic
                 track = random.choice(items)
                 name = track.get("name", "Unknown Track")
                 artists = ", ".join([a.get("name") for a in track.get("artists", [])]) or "Unknown Artist"
+                spotify_track_id = track.get("id")
                 url = (track.get("external_urls") or {}).get("spotify")
                 images = ((track.get("album") or {}).get("images") or [])
                 image = images[0]["url"] if images else None
-                return {"text": f"🎵 {name} — {artists}", "url": url, "image": image, "source": "spotify"}
+                return {
+                    "text": f"🎵 {name} — {artists}",
+                    "url": url,
+                    "image": image,
+                    "source": "spotify",
+                    "track_id": spotify_track_id,
+                    "listen_url": spotify_listen_url(spotify_track_id)
+                }
         except Exception as exc:
             pass
     # Fallback to iTunes
@@ -435,10 +465,17 @@ def get_song_recommendation_with_url(song_type: str = "", mood: str = "") -> dic
             artist = track.get("artistName", "Unknown Artist")
             link = track.get("trackViewUrl") or track.get("collectionViewUrl") or track.get("artistViewUrl")
             img = track.get("artworkUrl100") or track.get("artworkUrl60")
-            return {"text": f"🎵 {track_name} — {artist}", "url": link, "image": img, "source": "itunes"}
-        return {"text": "🎵 Couldn't find a song right now. Try another type?", "url": None, "source": "unknown"}
+            return {
+                "text": f"🎵 {track_name} — {artist}",
+                "url": link,
+                "image": img,
+                "source": "itunes",
+                "track_id": None,
+                "listen_url": link
+            }
+        return {"text": "🎵 Couldn't find a song right now. Try another type?", "url": None, "source": "unknown", "listen_url": None}
     except Exception as exc:
-        return {"text": f"⚠️ Music API error: {str(exc)}", "url": None, "source": "error"}
+        return {"text": f"⚠️ Music API error: {str(exc)}", "url": None, "source": "error", "listen_url": None}
 
 def suggest_music_with_links(query: str = "") -> list[dict]:
     """
@@ -469,10 +506,18 @@ def suggest_music_with_links(query: str = "") -> list[dict]:
                 # Skip generic titles
                 if name.lower() in ["popular", "music", "song"] and not artists:
                     continue
+                track_id = t.get("id")
                 url = (t.get("external_urls") or {}).get("spotify")
                 imgs = ((t.get("album") or {}).get("images") or [])
                 image = imgs[0]["url"] if imgs else None
-                results.append({"text": f"🎵 {name} — {artists}", "url": url, "image": image, "source": "spotify"})
+                results.append({
+                    "text": f"🎵 {name} — {artists}",
+                    "url": url,
+                    "image": image,
+                    "source": "spotify",
+                    "track_id": track_id,
+                    "listen_url": spotify_listen_url(track_id)
+                })
             if results:
                 return results[:10]  # Limit to 10
         except Exception:
@@ -497,12 +542,18 @@ def suggest_music_with_links(query: str = "") -> list[dict]:
             seen_titles.add(title_key)
             link = track.get("trackViewUrl") or track.get("collectionViewUrl") or track.get("artistViewUrl")
             img = track.get("artworkUrl100") or track.get("artworkUrl60")
-            results.append({"text": f"🎵 {track_name} — {artist}", "url": link, "image": img, "source": "itunes"})
+            results.append({
+                "text": f"🎵 {track_name} — {artist}",
+                "url": link,
+                "image": img,
+                "source": "itunes",
+                "listen_url": link
+            })
             if len(results) >= 10:
                 break
-        return results or [{"text": "No songs found.", "url": None, "source": "unknown"}]
+        return results or [{"text": "No songs found.", "url": None, "source": "unknown", "listen_url": None}]
     except Exception as exc:
-        return [{"text": f"⚠️ Music search error: {str(exc)}", "url": None, "source": "error"}]
+        return [{"text": f"⚠️ Music search error: {str(exc)}", "url": None, "source": "error", "listen_url": None}]
 
 def get_food_recommendation_with_url(diet: str = "") -> dict:
     """
@@ -718,10 +769,13 @@ def fallback_event_links(category: str, city: str) -> list[dict]:
     slug = city_q.replace(" ", "-").lower()
     # Broad events page; specific categories vary by region on BMS
     bms_url = f"https://in.bookmyshow.com/explore/events-{slug}"
-    return [
+    links = [
         {"text": f"🔎 Search {cat} near {city_q}", "url": google_url},
         {"text": f"🎟️ BookMyShow {cat} in {city_q}", "url": bms_url},
     ]
+    if cat.lower() in ["talkshow", "talkshows", "find events", "events"]:
+        links.append({"text": "🎤 Host or tune in via Zoho ShowTime", "url": "https://www.zoho.com/showtime/virtual-events.html"})
+    return links
 
 
 # Bot routes: ONLY /suggest_cards, /events_cards, /recommendations
@@ -744,12 +798,16 @@ def spotify_start():
         redirect_uri = "http://localhost:5000/oauth/spotify/callback"
     
     scope = "user-read-email user-read-private"
+    state = "zorek_state"
+    next_url = request.args.get("next")
+    if next_url:
+        state = requests.utils.quote(next_url, safe="")
     auth_url = (
         "https://accounts.spotify.com/authorize"
         f"?response_type=code&client_id={SPOTIFY_CLIENT_ID}"
         f"&redirect_uri={requests.utils.quote(redirect_uri, safe='')}"
         f"&scope={requests.utils.quote(scope, safe='')}"
-        f"&state=zo_rek_state"
+        f"&state={state}"
     )
     # Redirect directly to Spotify
     return redirect(auth_url)
@@ -788,11 +846,49 @@ def spotify_callback():
         if "access_token" in tok:
             set_spotify_token(tok["access_token"], tok.get("expires_in", 3600), token_kind="user")
             # Redirect back to app with success message
-            return redirect("/?spotify=connected")
+            state_val = request.args.get("state")
+            target = "/?spotify=connected"
+            if state_val and state_val != "zorek_state":
+                try:
+                    target = requests.utils.unquote(state_val)
+                except Exception:
+                    target = "/?spotify=connected"
+            return redirect(target)
         return jsonify({"error": "Failed to get access token", "response": tok}), 400
     except Exception as e:
         print("❌ Spotify callback error:", traceback.format_exc())
         return f"Error: {str(e)}. <a href='/'>Return to app</a>", 400
+
+
+@app.route('/listen/spotify/<track_id>')
+def listen_spotify_track(track_id):
+    """
+    Redirect visitors to Spotify after ensuring OAuth token availability.
+    If the server lacks a valid token, send the visitor through the OAuth flow first.
+    """
+    clean_id = (track_id or "").split("?")[0]
+    if not clean_id:
+        return redirect("https://open.spotify.com")
+    
+    # Ensure we have a token; if not, kick off OAuth and return to this endpoint.
+    if not (ensure_spotify_token() and spotify_token_valid()):
+        if SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET:
+            start_url = "/oauth/spotify/start?next=" + requests.utils.quote(request.url, safe="")
+            return redirect(start_url)
+        # If OAuth isn't configured, fall back to public Spotify URL
+        return redirect(f"https://open.spotify.com/track/{clean_id}")
+    
+    # Optionally fetch track info for logging (non-blocking best-effort)
+    try:
+        headers = {"Authorization": f"Bearer {SPOTIFY_TOKEN['access_token']}"}
+        track_resp = requests.get(f"https://api.spotify.com/v1/tracks/{clean_id}", headers=headers, timeout=6)
+        if track_resp.status_code == 200:
+            data = track_resp.json()
+            print(f"🎧 Redirecting to Spotify track: {data.get('name')} by {', '.join([a.get('name') for a in data.get('artists', [])])}")
+    except Exception:
+        pass
+    
+    return redirect(f"https://open.spotify.com/track/{clean_id}")
 
 @app.route('/oauth/spotify/status')
 def spotify_status():
@@ -990,62 +1086,423 @@ def home():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZoRek · Entertainment Assistant</title>
+    <title>ZoRek · Entertainment One-Stop</title>
     <style>
-        :root { color-scheme: dark; }
-        * { box-sizing: border-box; font-family: "Inter","Segoe UI",sans-serif; }
+        :root {
+            color-scheme: dark;
+            --bg: #090d1a;
+            --panel: #11172b;
+            --accent: #6c63ff;
+            --accent-soft: rgba(108, 99, 255, 0.18);
+            --text: #f6f7ff;
+            --muted: rgba(246,247,255,0.7);
+            font-family: "Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+        }
+        * { box-sizing: border-box; }
         body {
             margin: 0;
+            background: radial-gradient(circle at top, #1d2550 0%, #090d1a 55%);
+            color: var(--text);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            background: linear-gradient(135deg, #101428 0%, #181f3a 60%, #101428 100%);
-            color: #f3f5ff;
+            padding: 0 0 4rem;
         }
+        a { color: var(--accent); }
         .hero {
+            padding: 4rem 1.5rem 2rem;
             text-align: center;
-            padding: 2.5rem 2rem;
-            border-radius: 18px;
-            background: rgba(4,6,14,0.7);
-            border: 1px solid rgba(255,255,255,0.08);
-            width: min(90vw, 640px);
-            box-shadow: 0 25px 55px rgba(5,8,20,0.55);
-            backdrop-filter: blur(12px);
         }
-        h1 {
-            margin: 0;
-            font-size: clamp(2rem, 4vw, 2.8rem);
+        .hero h1 {
+            margin: 1rem auto 0;
+            font-size: clamp(2.2rem, 5vw, 3.4rem);
             letter-spacing: 0.02em;
         }
-        p {
+        .hero p {
             margin: 1rem auto 0;
-            font-size: 1.05rem;
-            max-width: 480px;
-            color: rgba(243,245,255,0.78);
-            line-height: 1.6;
+            max-width: 720px;
+            font-size: 1.15rem;
+            color: var(--muted);
+            line-height: 1.7;
         }
-        .pill {
+        .eyebrow {
             display: inline-flex;
-            gap: 0.4rem;
-            padding: 0.55rem 1.25rem;
+            padding: 0.45rem 1.2rem;
             border-radius: 999px;
-            border: 1px solid rgba(255,255,255,0.12);
-            background: rgba(255,255,255,0.05);
-            margin-top: 1.5rem;
+            border: 1px solid var(--accent);
+            background: var(--accent-soft);
+            font-size: 0.95rem;
+        }
+        .content {
+            width: min(1200px, 94vw);
+            margin: 0 auto;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0 3rem;
+        }
+        .feature-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 1.4rem;
+            min-height: 180px;
+        }
+        .feature-card h3 {
+            margin: 0 0 0.6rem;
+            font-size: 1.1rem;
+        }
+        .workbench {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        .tool-card {
+            background: var(--panel);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 18px;
+            padding: 1.5rem;
+            box-shadow: 0 20px 50px rgba(3,5,15,0.55);
+        }
+        .tool-card h2 {
+            margin-top: 0;
+            font-size: 1.4rem;
+        }
+        form {
+            display: grid;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+        label {
+            display: flex;
+            flex-direction: column;
             font-size: 0.92rem;
-            color: rgba(243,245,255,0.9);
+            color: var(--muted);
+            gap: 0.35rem;
+        }
+        input, select, textarea {
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.04);
+            color: var(--text);
+            padding: 0.65rem 0.75rem;
+            font-size: 1rem;
+        }
+        button {
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem 1.1rem;
+            background: linear-gradient(120deg, #6c63ff, #9d8eff);
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .status {
+            min-height: 1.2rem;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+        .result-block {
+            border-top: 1px solid rgba(255,255,255,0.08);
+            padding-top: 1rem;
+        }
+        .result-text {
+            margin: 0 0 1rem;
+            color: var(--muted);
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.85rem;
+        }
+        .card {
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 0.85rem;
+            background: rgba(255,255,255,0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+        .card img {
+            width: 100%;
+            border-radius: 10px;
+            max-height: 110px;
+            object-fit: cover;
+        }
+        .card h4 {
+            margin: 0;
+            font-size: 1rem;
+        }
+        .card p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+        .card a {
+            margin-top: auto;
+            text-decoration: none;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 0.35rem 0.55rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .chatbox {
+            margin-top: 3rem;
+            text-align: center;
+        }
+        .chatbox button {
+            margin-top: 1rem;
+        }
+        .muted { color: var(--muted); }
+        @media (max-width: 640px) {
+            .features, .card-grid { grid-template-columns: 1fr; }
+            .workbench { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <main class="hero">
-        <div class="pill">ZoRek · SalesIQ Entertainment Bot</div>
-        <h1>Entertainment assistant is live.</h1>
-        <p>ZoRek is running as a backend service for the Zoho SalesIQ script bot. Use your SalesIQ interface to chat with the assistant. This page only hosts the widget script.</p>
-        <p style="margin-top: 1.5rem;"><a href="/scripts" style="color: #4a90e2; text-decoration: none; border: 1px solid #4a90e2; padding: 0.5rem 1rem; border-radius: 6px; display: inline-block;">📜 View Deluge Scripts</a></p>
+    <header class="hero">
+        <span class="eyebrow">ZoRek · Entertainment One-Stop</span>
+        <h1>Discover, plan, and vibe — cards + chatbot in one place.</h1>
+        <p>ZoRek blends curated APIs, Zoho SalesIQ automations, Spotify OAuth, AI commentary, and Google Sheet logging into a single flow. Drive everything from the chatbot <em>or</em> from the panels below.</p>
+        <p><a href="/scripts">📜 View integration scripts</a></p>
+    </header>
+
+    <main class="content">
+        <section class="features">
+            <article class="feature-card">
+                <h3>Suggest Something</h3>
+                <p>Movies, books, music, games, and food cards straight from TMDB, Google Books, Spotify, CheapShark, and Spoonacular.</p>
+            </article>
+            <article class="feature-card">
+                <h3>Book an Event</h3>
+                <p>SeatGeek geo lookups with Indian fallbacks (BookMyShow, Google, Zoho ShowTime) so visitors never hit a dead end.</p>
+            </article>
+            <article class="feature-card">
+                <h3>My Pick Combo</h3>
+                <p>Curate a movie + song + dish combo, optionally layered with AI commentary for a concierge vibe.</p>
+            </article>
+            <article class="feature-card">
+                <h3>SalesIQ + Web</h3>
+                <p>Use these tools inline or keep chatting with the SalesIQ bot floating on every page—two entry points, one brain.</p>
+            </article>
+        </section>
+
+        <section class="workbench">
+            <div class="tool-card">
+                <h2>🎬 Suggest Something</h2>
+                <form id="suggestForm">
+                    <label>Category
+                        <select name="category" required>
+                            <option value="movies">Movies</option>
+                            <option value="books">Books</option>
+                            <option value="games">Games</option>
+                            <option value="music">Music</option>
+                            <option value="food">Food</option>
+                        </select>
+                    </label>
+                    <label>Genre (Movies) / Mood (Music)
+                        <input name="genre" placeholder="Action, Cozy, Upbeat..." />
+                    </label>
+                    <label>Subject (Books) / Secondary filter
+                        <input name="subject" placeholder="Mystery, Productivity..." />
+                    </label>
+                    <label>IMDb Rating (e.g., 7.5+)
+                        <input name="minImdb" placeholder="7.0+" />
+                    </label>
+                    <label>Year / Filters
+                        <input name="year" placeholder="2018+" />
+                    </label>
+                    <label>Keyword (Games / Music)
+                        <input name="keyword" placeholder="Horror, Indie pop..." />
+                    </label>
+                    <label>Diet preference (Food)
+                        <input name="diet" placeholder="Veg, Vegan, Keto..." />
+                    </label>
+                    <label>Song type (Music)
+                        <input name="songType" placeholder="Lo-fi, Classical..." />
+                    </label>
+                    <button type="submit">Fetch Cards</button>
+                    <p class="status" id="suggestStatus"></p>
+                </form>
+                <div id="suggestResult" class="result-block"></div>
+            </div>
+
+            <div class="tool-card">
+                <h2>🎟️ Book an Event</h2>
+                <form id="eventForm">
+                    <label>Event Type
+                        <select name="category" required>
+                            <option value="concerts">Concerts</option>
+                            <option value="talkshow">Talk Show / Comedy</option>
+                            <option value="theater">Theater</option>
+                            <option value="sports">Sports</option>
+                            <option value="movies">Now Playing</option>
+                            <option value="find events">Find Events</option>
+                        </select>
+                    </label>
+                    <label>City
+                        <input name="city" placeholder="Mumbai, Delhi, Chennai..." required />
+                    </label>
+                    <button type="submit">Search Events</button>
+                    <p class="status" id="eventStatus"></p>
+                </form>
+                <div id="eventResult" class="result-block"></div>
+            </div>
+
+            <div class="tool-card">
+                <h2>🎁 My Pick Combo</h2>
+                <form id="comboForm">
+                    <label>Mood
+                        <input name="mood" placeholder="Chill, Hype, Cozy..." />
+                    </label>
+                    <label>Movie vibe
+                        <input name="movieGenre" placeholder="Sci-Fi, Drama, Animated..." />
+                    </label>
+                    <label>Song style
+                        <input name="songType" placeholder="Lo-fi, Pop, Classical..." />
+                    </label>
+                    <label>Diet preference
+                        <input name="diet" placeholder="Veg, Vegan, Keto..." />
+                    </label>
+                    <button type="submit">Build Combo</button>
+                    <p class="status" id="comboStatus"></p>
+                </form>
+                <div id="comboResult" class="result-block"></div>
+            </div>
+        </section>
+
+        <section class="chatbox">
+            <h2>Prefer chatting?</h2>
+            <p class="muted">ZoRek’s Zoho SalesIQ bot is still running in the corner. Use whichever path feels natural—everything syncs.</p>
+            <button onclick="openSalesIQ()">Open Chatbot</button>
+        </section>
     </main>
+
+    <script>
+    const headers = {"Content-Type": "application/json"};
+
+    const renderCards = (targetId, payload) => {
+        const container = document.getElementById(targetId);
+        if(!container) return;
+        const cards = (payload && (payload.elements || payload.cards)) || [];
+        const text = (payload && payload.text) || "Here are some options:";
+        let html = '<p class="result-text">' + text + '</p>';
+        if(!cards.length) {
+            html += '<p class="muted">No cards yet. Try adjusting the inputs.</p>';
+            container.innerHTML = html;
+            return;
+        }
+        html += '<div class="card-grid">';
+        cards.forEach(card => {
+            const action = card.actions && card.actions.length ? card.actions[0] : {};
+            html += '<article class="card">';
+            if(card.image){ html += '<img src="' + card.image + '" alt="' + (card.title || "card image") + '">'; }
+            html += '<div><h4>' + (card.title || "Untitled") + '</h4>';
+            if(card.subtitle){ html += '<p>' + card.subtitle + '</p>'; }
+            html += '</div>';
+            if(action && action.link){
+                html += '<a href="' + action.link + '" target="_blank" rel="noopener">Open</a>';
+            }
+            html += '</article>';
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    };
+
+    const setStatus = (id, message) => {
+        const el = document.getElementById(id);
+        if(el){ el.textContent = message || ""; }
+    };
+
+    const handleSuggest = async (event) => {
+        event.preventDefault();
+        const form = event.target;
+        const payload = {
+            category: form.category.value,
+            prefs: {
+                genre: form.genre.value,
+                subject: form.subject.value,
+                minImdb: form.minImdb.value,
+                year: form.year.value,
+                keyword: form.keyword.value,
+                diet: form.diet.value,
+                songType: form.songType.value
+            }
+        };
+        setStatus("suggestStatus", "Fetching cards...");
+        try {
+            const res = await fetch("/suggest_cards", {method: "POST", headers, body: JSON.stringify(payload)});
+            const data = await res.json();
+            renderCards("suggestResult", data);
+            setStatus("suggestStatus", "Done! Cards refreshed.");
+        } catch (err) {
+            console.error(err);
+            setStatus("suggestStatus", "Something went wrong. Please retry.");
+        }
+    };
+
+    const handleEvents = async (event) => {
+        event.preventDefault();
+        const form = event.target;
+        const payload = {
+            category: form.category.value,
+            city: form.city.value
+        };
+        setStatus("eventStatus", "Searching events...");
+        try {
+            const res = await fetch("/events_cards", {method: "POST", headers, body: JSON.stringify(payload)});
+            const data = await res.json();
+            renderCards("eventResult", data);
+            setStatus("eventStatus", "Done! Cards updated.");
+        } catch (err) {
+            console.error(err);
+            setStatus("eventStatus", "Unable to fetch events. Try again.");
+        }
+    };
+
+    const handleCombo = async (event) => {
+        event.preventDefault();
+        const form = event.target;
+        const payload = {
+            mood: form.mood.value,
+            movieGenre: form.movieGenre.value,
+            songType: form.songType.value,
+            diet: form.diet.value
+        };
+        setStatus("comboStatus", "Mixing your combo...");
+        try {
+            const res = await fetch("/recommendations", {method: "POST", headers, body: JSON.stringify(payload)});
+            const data = await res.json();
+            renderCards("comboResult", data);
+            setStatus("comboStatus", "Served! Scroll cards above.");
+        } catch (err) {
+            console.error(err);
+            setStatus("comboStatus", "Combo failed. Please tweak and retry.");
+        }
+    };
+
+    const openSalesIQ = () => {
+        if(window.$zoho && $zoho.salesiq){
+            $zoho.salesiq.floatwindow.visible("show");
+        } else {
+            alert("SalesIQ widget is loading. Please wait a moment.");
+        }
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const suggestForm = document.getElementById("suggestForm");
+        const eventForm = document.getElementById("eventForm");
+        const comboForm = document.getElementById("comboForm");
+        if(suggestForm) suggestForm.addEventListener("submit", handleSuggest);
+        if(eventForm) eventForm.addEventListener("submit", handleEvents);
+        if(comboForm) comboForm.addEventListener("submit", handleCombo);
+    });
+    </script>
     <script>window.$zoho=window.$zoho||{};$zoho.salesiq=$zoho.salesiq||{ready:function(){}};</script>
     <script id="zsiqscript" src="https://salesiq.zohopublic.com/widget?wc=siq5bbfed3274ca9acdcade85bd6f8a63dcc621b2560b3aa6bfe6d3f52d07cb0ee1" defer></script>
 </body>
