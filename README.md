@@ -3,6 +3,8 @@
 ZoRek is an entertainment chatbot built for **Zoho SalesIQ platform** that provides personalized recommendations for movies, books, games, food, and music, along with event booking capabilities. The bot consists of four Deluge handler scripts that work together to create a seamless conversational experience.
 
 **Live Demo**: https://zorek.onrender.com
+<img width="1919" height="964" alt="image" src="https://github.com/user-attachments/assets/6ef96608-d5d9-420b-94f2-9aa1203738d7" />
+
 
 ## 🎯 Features
 
