@@ -1,4 +1,4 @@
-# ZoRek – Entertainment Bot 🎬🎵🍕
+# ZoRek (Entertainment Bot 🎬🎵🍕)
 
 ZoRek is an entertainment chatbot built for **Zoho SalesIQ platform** that provides personalized recommendations for movies, books, games, food, and music, along with event booking capabilities. The bot consists of four Deluge handler scripts that work together to create a seamless conversational experience.
 
@@ -6,7 +6,7 @@ ZoRek is an entertainment chatbot built for **Zoho SalesIQ platform** that provi
 <img width="1919" height="964" alt="image" src="https://github.com/user-attachments/assets/6ef96608-d5d9-420b-94f2-9aa1203738d7" />
 
 
-## 🎯 Features
+## Features
 
 - **Suggest Something**: Get recommendations for Movies, Books, Games, Food, and Music with preference collection
 - **Book an Event**: Find concerts, talkshows, theater events, and movies near you (200+ Indian cities)
@@ -15,7 +15,7 @@ ZoRek is an entertainment chatbot built for **Zoho SalesIQ platform** that provi
 - **AI Commentary**: Optional AI-powered fun blurbs (requires OpenAI API key)
 - **Google Sheets Logging**: All interactions are logged for analytics
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -68,7 +68,7 @@ ZoRek is an entertainment chatbot built for **Zoho SalesIQ platform** that provi
    - Local: http://localhost:5000
    - Live: https://zorek.onrender.com
 
-## 📋 Zoho SalesIQ Bot Setup
+## Zoho SalesIQ Bot Setup
 
 ### Handler Scripts
 
@@ -98,7 +98,7 @@ The bot consists of four Deluge handler scripts located in `zohoscripts/`:
 
 For detailed documentation, see [ZoRek_Bot_Documentation.md](./ZoRek_Bot_Documentation.md)
 
-## 🔌 API Endpoints
+## API Endpoints
 
 ### Bot Endpoints (For Zoho SalesIQ)
 
@@ -225,20 +225,20 @@ Get AI-generated commentary (requires OpenAI API key).
 ### Brownie Points ✅
 
 1. **OAuth 2.0 Authentication**
-   - ✅ Spotify OAuth integration
-   - ✅ Secure authentication flow
-   - ✅ Direct track links after connection
+   -  Spotify OAuth integration
+   -  Secure authentication flow
+   -  Direct track links after connection
 
 2. **AI Functionalities**
-   - ✅ Backend supports OpenAI integration
-   - ✅ Optional AI commentary on recommendations
+   -  Backend supports OpenAI integration
+   -  Optional AI commentary on recommendations
 
 3. **Data Collection**
-   - ✅ Google Sheets logging
-   - ✅ Comprehensive interaction tracking
-   - ✅ Analytics-ready data structure
+   -  Google Sheets logging
+   -  Comprehensive interaction tracking
+   -  Analytics-ready data structure
 
-## 🏗️ Integration Architecture
+## Integration Architecture
 
 The bot uses a **minimal integration pattern** that separates concerns:
 
@@ -305,21 +305,21 @@ ZoRek/
 └── README.md
 ```
 
-## 📝 Logging
+## Logging
 
 All user interactions are automatically logged to Google Sheets via Sheet.best. The log includes:
 - Category, Preferences, City
 - Results Count, Suggestions
 - Timestamp, Endpoint
 
-## 🔒 Security
+## Security
 
 - All API keys stored in environment variables
 - CORS configured for Zoho SalesIQ domains
 - OAuth 2.0 for Spotify authentication
 - Proper error handling and responses
 
-## 📚 Documentation
+## Documentation
 
 - **[ZoRek_Bot_Documentation.md](./ZoRek_Bot_Documentation.md)** - Complete handler scripts documentation
 - Handler scripts are in `zohoscripts/` folder
@@ -341,16 +341,16 @@ All user interactions are automatically logged to Google Sheets via Sheet.best. 
 - Check portal name is correctly extracted in handlers
 - Ensure session storage is working properly
 
-## 📄 License
+## License
 
 This project is non-commercial and built for educational purposes.
 
-## 🔗 Links
+## Links
 
 - **Live App**: https://zorek.onrender.com
 - **GitHub**: https://github.com/gitXsingh/ZoRek
 - **Zoho SalesIQ**: https://www.zoho.com/salesiq/
 
-## 👥 Contributors
+## Contributors
 
 Built for Zoho SalesIQ Entertainment Track
